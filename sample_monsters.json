@@ -1,0 +1,148 @@
+[
+  {
+    "Type": "Default",
+    "VisualLabel": "Z",
+    "ModelKey": "policeman",
+    "Brain": "Normal",
+    "MaxHealth": 2,
+    "Tenacity": 0.0,
+    "CollisionSize-px": 26,
+    "BaseSpeed-px": 120,
+    "CollisionRadius-px": 13,
+    "RotatingSpeed-sec": 0.5,
+    "FindDistance-px": 100,
+    "AttackDistance-px": 85,
+    "CanPerformAngle-deg": 40,
+    "Abilities": {
+      "LowerBrain": {},
+      "UpperBrain": {},
+      "PerceptionRange": {},
+      "MemoryTime": {}
+    },
+    "BasicWeapon": 101,
+    "WeaponList": {
+      "Sun": 101,
+      "Moon": 102,
+      "Star": 103
+    },
+    "Comment": ""
+  },
+  {
+    "Type": "Kid",
+    "VisualLabel": "K",
+    "ModelKey": "policeman",
+    "Brain": "Smart",
+    "MaxHealth": 1,
+    "Tenacity": 0.0,
+    "CollisionSize-px": 20,
+    "BaseSpeed-px": 180,
+    "CollisionRadius-px": 10,
+    "RotatingSpeed-sec": 0.4,
+    "FindDistance-px": 140,
+    "AttackDistance-px": 60,
+    "CanPerformAngle-deg": 90,
+    "Abilities": {
+      "LowerBrain": {},
+      "UpperBrain": {},
+      "PerceptionRange": {},
+      "MemoryTime": {},
+      "Quicken": {
+        "Power": 1.0
+      }
+    },
+    "BasicWeapon": 101,
+    "WeaponList": {
+      "Sun": 101,
+      "Moon": 102,
+      "Star": 103
+    }
+  },
+  {
+    "Type": "Vomit",
+    "VisualLabel": "V",
+    "ModelKey": "policeman",
+    "Brain": "Normal",
+    "MaxHealth": 1,
+    "Tenacity": 0.0,
+    "CollisionSize-px": 20,
+    "BaseSpeed-px": 120,
+    "CollisionRadius-px": 10,
+    "RotatingSpeed-sec": 0.5,
+    "FindDistance-px": 170,
+    "AttackDistance-px": 140,
+    "CanPerformAngle-deg": 40,
+    "Abilities": {
+      "LowerBrain": {},
+      "UpperBrain": {},
+      "PerceptionRange": {},
+      "MemoryTime": {}
+    },
+    "BasicWeapon": 101,
+    "WeaponList": {
+      "Sun": 104,
+      "Moon": 101,
+      "Star": 101
+    }
+  },
+  {
+    "Type": "Giant",
+    "VisualLabel": "G",
+    "ModelKey": "policeman",
+    "Brain": "Normal",
+    "MaxHealth": 3,
+    "Tenacity": 0.0,
+    "CollisionSize-px": 50,
+    "BaseSpeed-px": 80,
+    "CollisionRadius-px": 25,
+    "RotatingSpeed-sec": 0.1,
+    "FindDistance-px": 120,
+    "AttackDistance-px": 100,
+    "CanPerformAngle-deg": 60,
+    "Abilities": {
+      "LowerBrain": {},
+      "UpperBrain": {},
+      "PerceptionRange": {},
+      "MemoryTime": {},
+      "Colossus": {
+        "Health": 3,
+        "Size": 1.8
+      }
+    },
+    "BasicWeapon": 106,
+    "WeaponList": {
+      "Sun": 106,
+      "Moon": 106,
+      "Star": 106
+    }
+  },
+  {
+    "Type": "Shadow",
+    "VisualLabel": "S",
+    "ModelKey": "policeman",
+    "Brain": "Normal",
+    "MaxHealth": 1,
+    "Tenacity": 0.0,
+    "CollisionSize-px": 24,
+    "BaseSpeed-px": 50,
+    "CollisionRadius-px": 12,
+    "RotatingSpeed-sec": 0.4,
+    "FindDistance-px": 150,
+    "AttackDistance-px": 25,
+    "CanPerformAngle-deg": 90,
+    "Abilities": {
+      "LowerBrain": {},
+      "UpperBrain": {},
+      "PerceptionRange": {},
+      "MemoryTime": {},
+      "ShadowMeld": {
+        "Duration": 2.5
+      }
+    },
+    "BasicWeapon": 103,
+    "WeaponList": {
+      "Sun": 101,
+      "Moon": 102,
+      "Star": 103
+    }
+  }
+]

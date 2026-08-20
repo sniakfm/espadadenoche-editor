@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>어빌리티 에디터 - Espada de noche</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;600;700&family=Cinzel:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/style.css?v=3.1.0">
+</head>
+<body class="dark-theme">
+
+  <!-- Ability Editor Screen -->
+  <div id="view-ability-editor" class="editor-screen" style="display: flex;">
+    <!-- App Header -->
+    <header class="app-header">
+      <div class="brand">
+        <button class="btn btn-sm btn-secondary" id="btnBackToHub" onclick="window.location.href='index.html'" title="메인 허브 화면으로">🏠 허브로</button>
+        <div class="brand-icon">⚡</div>
+        <div class="brand-titles">
+          <h1 class="app-title">어빌리티 에디터</h1>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <div class="file-status" id="fileStatusInfo">
+          <span class="status-indicator online"></span>
+          <span class="file-name" id="currentFileName">어빌리티 DB</span>
+        </div>
+        <button class="btn btn-secondary" id="btnOpenFile">📂 파일 열기</button>
+        <input type="file" id="fileInputSelect" accept=".json" style="display: none;">
+        <button class="btn btn-secondary" id="btnNewFile">✨ 새로 만들기</button>
+        <button class="btn btn-primary" id="btnSaveFile">💾 저장 (Ctrl+S)</button>
+        <button class="btn btn-outline-primary" id="btnTogglePreview">👁️ 실시간 뷰</button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="app-body">
+      <!-- Sidebar: Ability List -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="search-box">
+            <input type="text" id="searchInput" placeholder="ID, 스킬명 검색..." autocomplete="off">
+            <button class="btn-clear" id="btnClearSearch">✕</button>
+          </div>
+
+          <div class="filter-row">
+            <select id="filterRace">
+              <option value="ALL">전체 종족</option>
+              <option value="none">⚙️ none (공통)</option>
+              <option value="human">👤 human (인간)</option>
+              <option value="zombie">🧟 zombie (좀비)</option>
+            </select>
+            <select id="filterType">
+              <option value="ALL">전체 타입</option>
+              <option value="none">none</option>
+              <option value="passive">passive</option>
+              <option value="active">active</option>
+              <option value="both">both</option>
+              <option value="toggle">toggle</option>
+            </select>
+          </div>
+
+          <div class="list-meta">
+            <span id="abilityCountBadge" class="count-badge">0개 스킬</span>
+            <button class="btn btn-sm btn-outline-success" id="btnAddAbility">➕ 추가</button>
+          </div>
+        </div>
+
+        <div class="ability-list" id="abilityList">
+          <!-- Dynamic ability item list -->
+        </div>
+      </aside>
+
+      <!-- Main Workspace Area -->
+      <main class="workspace">
+        <!-- Top Navigation Tabs -->
+        <nav class="view-tabs">
+          <button class="tab-btn active" data-tab="form">📝 스킬 편집</button>
+          <button class="tab-btn" data-tab="table">📊 테이블 에디터</button>
+          <button class="tab-btn" data-tab="preview">🃏 전체 갤러리</button>
+          <button class="tab-btn" data-tab="json">📄 원본 JSON</button>
+          <button class="tab-btn" data-tab="validation">⚠️ 검증 (<span id="validationCount">0</span>)</button>
+        </nav>
+
+        <!-- Tab Content Area -->
+        <div class="tab-contents">
+          
+          <!-- Tab 1: Clean Form Editor Pane (Single Page Linear Inspector) -->
+          <section id="tab-form" class="tab-pane active">
+            <div class="clean-form-container">
+              <div class="pane-header">
+                <div class="header-title-group">
+                  <h2 id="currentSkillHeaderTitle">어빌리티 편집</h2>
+                  <span class="skill-id-tag" id="currentSkillHeaderId">#1</span>
+                </div>
+
+                <div class="pane-actions">
+                  <button type="button" class="btn btn-sm btn-secondary" id="btnDuplicateAbility">📋 복제</button>
+                  <button type="button" class="btn btn-sm btn-outline-danger" id="btnDeleteAbility">🗑️ 삭제</button>
+                </div>
+              </div>
+
+              <form id="abilityForm" onsubmit="return false;" class="linear-inspector-form">
+                <!-- 1. ID -->
+                <div class="field-row">
+                  <label class="field-row-label" for="inputFieldId">1. ID <span class="required">*</span></label>
+                  <div class="field-row-control">
+                    <input type="number" id="inputFieldId" class="inline-field-input" placeholder="어빌리티 고유 ID">
+                  </div>
+                </div>
+
+                <!-- 2. 어빌리티 코드명 -->
+                <div class="field-row">
+                  <label class="field-row-label" for="inputFieldAbilityName">2. 코드명 <span class="required">*</span></label>
+                  <div class="field-row-control">
+                    <input type="text" id="inputFieldAbilityName" class="inline-field-input font-bold" placeholder="AbilityName (예: Quicken)">
+                  </div>
+                </div>
+
+                <!-- 3. 표시 이름 (한글명) -->
+                <div class="field-row">
+                  <label class="field-row-label" for="inputFieldStringName">3. 표시 이름 <span class="required">*</span></label>
+                  <div class="field-row-control">
+                    <input type="text" id="inputFieldStringName" class="inline-field-input" placeholder="StringName (예: 신속)">
+                  </div>
+                </div>
+
+                <!-- 4. 종족 (Race) -->
+                <div class="field-row">
+                  <label class="field-row-label" for="inputFieldRace">4. 종족</label>
+                  <div class="field-row-control">
+                    <select id="inputFieldRace" class="inline-field-input">
+                      <option value="none">none (공통 / 없음)</option>
+                      <option value="human">human (인간)</option>
+                      <option value="zombie">zombie (좀비)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- 5. 스킬 타입 (AbilityType) -->
+                <div class="field-row">
+                  <label class="field-row-label" for="inputFieldAbilityType">5. 스킬 타입</label>
+                  <div class="field-row-control">
+                    <select id="inputFieldAbilityType" class="inline-field-input">
+                      <option value="none">none (없음)</option>
+                      <option value="passive">🛡️ passive (패시브)</option>
+                      <option value="active">⚡ active (액티브)</option>
+                      <option value="both">🔄 both (패시브+액티브)</option>
+                      <option value="toggle">🔘 toggle (토글)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- 6. 주 카테고리 (Categories_Main) -->
+                <div class="field-row">
+                  <label class="field-row-label" for="inputFieldCatMain">6. 주 카테고리</label>
+                  <div class="field-row-control">
+                    <input type="text" id="inputFieldCatMain" class="inline-field-input" placeholder="Categories_Main (예: body, magic, weapon)">
+                  </div>
+                </div>
+
+                <!-- 7. 부 카테고리 (Categories_Sub) -->
+                <div class="field-row">
+                  <label class="field-row-label" for="inputFieldCatSub">7. 부 카테고리</label>
+                  <div class="field-row-control">
+                    <input type="text" id="inputFieldCatSub" class="inline-field-input" placeholder="Categories_Sub (예: empower, passive, utility)">
+                  </div>
+                </div>
+
+                <!-- 8. 리소스 경로 (ImgRes) -->
+                <div class="field-row">
+                  <label class="field-row-label" for="inputFieldImgRes">8. 리소스 경로</label>
+                  <div class="field-row-control">
+                    <input type="text" id="inputFieldImgRes" class="inline-field-input code-font" placeholder="res://resource/graphics/card_image/...">
+                  </div>
+                </div>
+
+                <!-- 9. 스킬 설명 (Desc) -->
+                <div class="field-row align-start">
+                  <label class="field-row-label" for="inputFieldDesc">9. 스킬 설명</label>
+                  <div class="field-row-control">
+                    <textarea id="inputFieldDesc" class="inline-field-input" rows="2" placeholder="스킬 설명 텍스트"></textarea>
+                  </div>
+                </div>
+
+                <!-- 10. 태그 목록 (Tag) -->
+                <div class="field-row align-start">
+                  <label class="field-row-label">10. 태그 목록</label>
+                  <div class="field-row-control tag-control-box">
+                    <div class="tag-chip-container" id="tagChipContainer"></div>
+                    <div class="tag-input-inline-row">
+                      <input type="text" id="newTagInput" class="inline-field-input-sm" placeholder="+ 태그 입력 후 Enter">
+                      <select id="presetTagSelect" class="inline-field-input-sm">
+                        <option value="">+ 자주 쓰는 태그</option>
+                        <option value="free_action">free_action</option>
+                        <option value="cooldown_when_end">cooldown_when_end</option>
+                        <option value="cooldown_when_use">cooldown_when_use</option>
+                        <option value="cast_channel">cast_channel</option>
+                        <option value="action_channel">action_channel</option>
+                        <option value="cast_predelay">cast_predelay</option>
+                        <option value="perform_action">perform_action</option>
+                        <option value="action_toggle">action_toggle</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 11. 스탯 수정자 (Attribute_Modifier) -->
+                <div class="field-row align-start">
+                  <div class="field-row-label-group">
+                    <label class="field-row-label">11. 스탯 수정자</label>
+                    <button type="button" class="btn btn-xs btn-outline-primary" id="btnAddAttrModifier">➕ 스탯 추가</button>
+                  </div>
+                  <div class="field-row-control">
+                    <div class="attr-modifier-list" id="attrModifierList"></div>
+                  </div>
+                </div>
+
+                <!-- 12. 동적 속성 (Cooldown, Duration 등) -->
+                <div class="field-row align-start">
+                  <div class="field-row-label-group">
+                    <label class="field-row-label">12. 동적 속성</label>
+                    <div class="dynamic-add-controls">
+                      <select id="quickParamSelect" class="inline-field-input-sm">
+                        <option value="">+ 빠른 속성...</option>
+                        <option value="Cooldown">Cooldown (쿨타임)</option>
+                        <option value="Duration">Duration (지속시간)</option>
+                        <option value="Duration_Cast">Duration_Cast (시전시간)</option>
+                        <option value="Range">Range (사거리)</option>
+                        <option value="Damage">Damage (데미지)</option>
+                        <option value="Speed">Speed (속도)</option>
+                        <option value="Projectile_Speed">Projectile_Speed (투사체속도)</option>
+                        <option value="Filter">Filter (적용대상)</option>
+                      </select>
+                      <button type="button" class="btn btn-xs btn-outline-secondary" id="btnAddDynamicProp">➕ 자유 속성</button>
+                    </div>
+                  </div>
+                  <div class="field-row-control">
+                    <div class="dynamic-props-list" id="dynamicPropsList"></div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <!-- Tab 2: Quick Excel-style Table Editor View -->
+          <section id="tab-table" class="tab-pane">
+            <div class="table-editor-container">
+              <div class="table-actions-header">
+                <h3>📊 퀵 테이블 에디터 <span class="table-hint">(셀을 클릭해 즉시 수정하세요)</span></h3>
+              </div>
+              <div class="table-scroll-wrapper">
+                <table class="data-editor-table" id="dataEditorTable">
+                  <thead>
+                    <tr>
+                      <th style="width: 70px;">ID</th>
+                      <th style="width: 140px;">한글명</th>
+                      <th style="width: 140px;">코드명</th>
+                      <th style="width: 100px;">종족</th>
+                      <th style="width: 100px;">타입</th>
+                      <th style="width: 120px;">주 카테고리</th>
+                      <th style="width: 100px;">Cooldown</th>
+                      <th style="width: 100px;">Range</th>
+                      <th style="width: 100px;">Damage</th>
+                      <th style="width: 250px;">설명</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableBody">
+                    <!-- Inline editable table rows -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Tab 3: Visual Gallery Grid View -->
+          <section id="tab-preview" class="tab-pane">
+            <div class="gallery-header">
+              <h2>전체 스킬 카드 갤러리</h2>
+            </div>
+            <div class="gallery-grid" id="galleryGrid">
+              <!-- All ability cards -->
+            </div>
+          </section>
+
+          <!-- Tab 4: Raw JSON Split Code Editor -->
+          <section id="tab-json" class="tab-pane">
+            <div class="json-editor-container">
+              <div class="json-actions">
+                <span>Raw JSON View</span>
+                <button class="btn btn-sm btn-primary" id="btnApplyRawJson">JSON 직접 반영하기</button>
+              </div>
+              <textarea id="rawJsonTextArea" class="raw-json-area" spellcheck="false"></textarea>
+            </div>
+          </section>
+
+          <!-- Tab 5: Validation & Diagnostics -->
+          <section id="tab-validation" class="tab-pane">
+            <div class="validation-container">
+              <h2>데이터 유효성 검사</h2>
+              <div class="validation-summary-grid">
+                <div class="stat-card">
+                  <span class="stat-num" id="statTotalAbilities">0</span>
+                  <span class="stat-label">총 어빌리티 수</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-num text-success" id="statValidAbilities">0</span>
+                  <span class="stat-label">정상</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-num text-warning" id="statWarningIssues">0</span>
+                  <span class="stat-label">경고</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-num text-danger" id="statErrorIssues">0</span>
+                  <span class="stat-label">오류</span>
+                </div>
+              </div>
+
+              <div class="issue-list" id="issueList">
+                <!-- Issue items -->
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </main>
+    </div>
+
+    <!-- Real-time Live Card View Slide Drawer -->
+    <div class="preview-drawer" id="previewDrawer">
+      <div class="drawer-header">
+        <h3>👁️ 실시간 카드 뷰</h3>
+        <button class="btn-close-drawer" id="btnClosePreviewDrawer">✕</button>
+      </div>
+      <div class="drawer-body">
+        <div class="card-visualizer-container">
+          <div class="ability-card" id="abilityCardVisual">
+            <div class="card-header-banner" id="cardBanner">
+              <span class="card-race-tag" id="cardRace">zombie</span>
+              <span class="card-type-tag" id="cardType">PASSIVE</span>
+            </div>
+
+            <div class="card-title-area">
+              <div class="card-id-badge" id="cardId">#1</div>
+              <div class="card-titles">
+                <h3 class="card-korean-name" id="cardStringName">신속</h3>
+                <div class="card-code-name" id="cardAbilityName">Quicken</div>
+              </div>
+            </div>
+
+            <div class="card-visual-fx-box" id="cardVisualFxBox">
+              <div class="fx-particle" id="cardParticle"></div>
+              <div class="fx-label" id="cardFxLabel">Visual Effect</div>
+            </div>
+
+            <div class="card-category-badge">
+              <span id="cardCatMain">body</span> / <span id="cardCatSub">empower</span>
+            </div>
+
+            <div class="card-stats-grid" id="cardStatsGrid">
+              <!-- Dynamic badges -->
+            </div>
+
+            <div class="card-modifiers-box" id="cardModifiersBox">
+              <!-- Attribute modifiers list -->
+            </div>
+
+            <div class="card-desc" id="cardDesc">
+              설명...
+            </div>
+
+            <div class="card-tags-list" id="cardTagsList">
+              <!-- Rendered tag badges -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ability Property Quick Edit Modal Dialog -->
+  <div class="modal-overlay" id="fieldEditModal">
+    <div class="modal-content field-edit-modal-content">
+      <div class="modal-header">
+        <h3 id="fieldEditModalTitle">속성 수정</h3>
+        <button class="btn-close-modal" id="btnCloseFieldEditModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label id="fieldEditModalLabel">수정할 값 입력</label>
+          <div id="fieldEditModalInputContainer"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelFieldEdit">취소 (Esc)</button>
+        <button class="btn btn-primary" id="btnApplyFieldEdit">확인 (Enter)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- System / Pause Menu Modal (menu.html) -->
+  <div id="systemMenuModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.65); z-index:999999; align-items:center; justify-content:center;">
+    <iframe src="menu.html" style="width:340px; height:240px; border:none; background:transparent;" allowtransparency="true"></iframe>
+  </div>
+
+  <!-- Home Exit Confirm Modal -->
+  <div class="modal-overlay" id="homeConfirmModal">
+    <div class="modal-content home-confirm-modal-content">
+      <div class="modal-header">
+        <h3>⚠️ 메인 메뉴로 나가기</h3>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.92rem; color: #e2e8f0; line-height: 1.5;">
+          정말 나가시겠습니까?<br>
+          <span style="font-size: 0.8rem; color: #94a3b8;">(저장되지 않은 변경사항이 있을 수 있습니다.)</span>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelHomeExit">아니오</button>
+        <button class="btn btn-outline-danger" id="btnConfirmHomeExit">예 (나가기)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/app.js"></script>
+</body>
+</html>

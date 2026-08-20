@@ -1,0 +1,13 @@
+{
+  "name": "espada-de-noche-data-editor",
+  "version": "1.0.0",
+  "description": "Espada de noche 데이터 편집기 - Tauri + C# Game Ability Editor",
+  "main": "frontend/index.html",
+  "scripts": {
+    "backend": "dotnet run --project backend",
+    "serve": "npx -y serve frontend -l 1420"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}

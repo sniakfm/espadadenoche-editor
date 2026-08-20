@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고급 무기 데이터 에디터</title>
+<style>
+  :root {
+    --bg-main: #18181c;
+    --bg-sidebar: #202026;
+    --bg-card: #282832;
+    --bg-input: #141418;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-subtle: rgba(59, 130, 246, 0.15);
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --success: #10b981;
+    --success-hover: #059669;
+    --text: #f3f4f6;
+    --text-dim: #9ca3af;
+    --border: #374151;
+    --border-light: #4b5563;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg-main);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-size: 13px;
+  }
+
+  header {
+    background: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    z-index: 10;
+  }
+
+  .header-left, .header-actions { display: flex; gap: 8px; align-items: center; }
+  .logo { font-weight: 800; font-size: 15px; letter-spacing: -0.3px; margin-right: 8px; color: #fff; }
+
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  button:hover { background: var(--accent-hover); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary { background: var(--bg-card); border: 1px solid var(--border); color: var(--text); }
+  button.secondary:hover { background: var(--border); }
+  button.danger { background: var(--danger); }
+  button.danger:hover { background: var(--danger-hover); }
+  button.success { background: var(--success); }
+  button.success:hover { background: var(--success-hover); }
+  button.sm { padding: 4px 8px; font-size: 11px; }
+
+  .layout { display: flex; flex: 1; overflow: hidden; position: relative; }
+
+  aside {
+    width: 320px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .sidebar-controls {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .filter-row { display: flex; gap: 6px; }
+
+  .item-list { flex: 1; overflow-y: auto; list-style: none; }
+  .item-entry {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .item-entry:hover { background: rgba(255,255,255,0.03); }
+  .item-entry.active { background: var(--bg-card); border-left: 3px solid var(--accent); }
+  .item-title { font-weight: 600; font-size: 13px; margin-bottom: 2px; color: #fff; }
+  .item-meta { font-size: 11px; color: var(--text-dim); display: flex; justify-content: space-between; }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-sidebar);
+    padding: 14px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .card {
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .property-grid {
+    display: grid;
+    grid-template-columns: 180px 1fr 34px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .prop-label {
+    font-weight: 600;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .prop-label span { font-size: 10px; color: var(--accent); margin-left: 4px; }
+
+  input, select, textarea {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { min-height: 54px; resize: vertical; }
+
+  .checkbox-wrapper { display: flex; align-items: center; height: 100%; }
+  input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+
+  /* Tag Array UI */
+  .tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    background: var(--bg-input);
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    min-height: 35px;
+    align-items: center;
+  }
+  .tag-chip {
+    background: var(--accent-subtle);
+    color: var(--accent);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .tag-chip button {
+    background: transparent;
+    color: var(--accent);
+    border: none;
+    padding: 0 2px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .tag-chip button:hover { color: var(--danger); }
+  .tag-add-box { display: flex; gap: 4px; margin-top: 4px; }
+  .tag-add-box input { width: 110px; padding: 4px 6px; }
+
+  /* Right Pane (JSON Viewer) */
+  #jsonViewerPane {
+    width: 360px;
+    background: var(--bg-sidebar);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    transition: margin-right 0.2s ease;
+  }
+  #jsonViewerPane.hidden { margin-right: -361px; }
+  .json-viewer-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+  }
+  .json-viewer-content {
+    flex: 1;
+    background: var(--bg-input);
+    color: #a5b4fc;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 11px;
+    padding: 12px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    border: none;
+    outline: none;
+    resize: none;
+  }
+
+  /* Modals */
+  .modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.65);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+  }
+  .modal-backdrop.active { display: flex; }
+  .modal-window {
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 480px;
+    max-width: 90vw;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .modal-title { font-size: 15px; font-weight: 700; }
+  .modal-body { display: flex; flex-direction: column; gap: 10px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+  .empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <button class="secondary sm" onclick="window.location.href='index.html'" title="메인 허브로 돌아가기" style="background:#1e293b; border-color:#475569;">🏠 허브로</button>
+    <div class="logo">WEAPON EDITOR</div>
+    <button class="secondary sm" id="btnUndo" onclick="undo()" title="실행 취소 (Ctrl+Z)">⟲ 취소</button>
+    <button class="secondary sm" id="btnRedo" onclick="redo()" title="다시 실행 (Ctrl+Y)">⟳ 다시</button>
+    <button class="secondary sm" onclick="openBatchModal()">⚙ 일괄 속성 관리</button>
+  </div>
+    <input type="file" id="fileInputJson" accept=".json" style="display:none" onchange="handleJsonUpload(event)">
+    <input type="file" id="fileInputCsv" accept=".csv" style="display:none" onchange="handleCsvUpload(event)">
+    <button class="secondary sm" onclick="openJsonFileViaDialog()">📂 JSON 불러오기</button>
+    <button class="secondary sm" onclick="document.getElementById('fileInputCsv').click()">CSV 불러오기</button>
+    <button class="secondary sm" onclick="exportCsv()">CSV 다운로드</button>
+    <button class="success sm" onclick="exportJson()">💾 JSON 저장</button>
+    <button class="secondary sm" onclick="toggleJsonViewer()">JSON 패널 ⬌</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="sidebar-controls">
+      <input type="text" id="searchFilter" placeholder="이름 / ID / 코드명 검색..." oninput="renderSidebar()">
+      <div class="filter-row">
+        <select id="typeFilter" onchange="renderSidebar()">
+          <option value="">모든 AttackType</option>
+          <option value="projectile">projectile</option>
+          <option value="no_projectile">no_projectile</option>
+        </select>
+        <select id="sortOrder" onchange="renderSidebar()">
+          <option value="id_asc">ID 오름차순</option>
+          <option value="id_desc">ID 내림차순</option>
+          <option value="name_asc">이름순</option>
+          <option value="damage_desc">데미지 높은순</option>
+          <option value="rarity_desc">희귀도 높은순</option>
+        </select>
+      </div>
+      <button class="secondary" style="width: 100%;" onclick="addItem()">+ 새 무기 추가</button>
+    </div>
+    <ul class="item-list" id="itemList"></ul>
+  </aside>
+
+  <main id="editorContainer">
+    <div class="empty-state">목록에서 편집할 무기를 선택하세요.</div>
+  </main>
+
+  <div id="jsonViewerPane">
+    <div class="json-viewer-header">
+      <span>RAW JSON 미리보기</span>
+      <button class="secondary sm" onclick="copyJsonToClipboard()">복사</button>
+    </div>
+    <textarea class="json-viewer-content" id="jsonViewerText" readonly></textarea>
+  </div>
+</div>
+
+<!-- Modal: 일괄 속성 관리 -->
+<div class="modal-backdrop" id="batchModal">
+  <div class="modal-window">
+    <div class="modal-title">일괄 속성 관리 (전체 무기 적용)</div>
+    <div class="modal-body">
+      <div style="font-weight: 600; font-size: 12px; color: var(--text-dim);">1. 새 속성 전체 일괄 추가</div>
+      <div style="display: flex; gap: 6px;">
+        <input type="text" id="batchPropKey" placeholder="속성명 (예: Knockback)">
+        <select id="batchPropType" style="width: 120px;">
+          <option value="number">숫자</option>
+          <option value="string">문자열</option>
+          <option value="boolean">불리언</option>
+        </select>
+        <input type="text" id="batchPropVal" placeholder="기본값 (예: 0)">
+      </div>
+      <button class="secondary sm" onclick="executeBatchAdd()">모든 무기에 추가</button>
+
+      <hr style="border: 0; border-top: 1px solid var(--border); margin: 6px 0;">
+
+      <div style="font-weight: 600; font-size: 12px; color: var(--danger);">2. 속성 전체 일괄 삭제</div>
+      <div style="display: flex; gap: 6px;">
+        <input type="text" id="batchRemoveKey" placeholder="삭제할 속성명">
+        <button class="danger sm" onclick="executeBatchRemove()">일괄 삭제</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="secondary" onclick="closeBatchModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- System / Pause Menu Modal (menu.html) -->
+<div id="escMenuModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.65); z-index:999999; align-items:center; justify-content:center;">
+  <iframe src="menu.html" style="width:340px; height:240px; border:none; background:transparent;" allowtransparency="true"></iframe>
+</div>
+
+<script>
+const DEFAULT_DATA = {
+  "0": {
+    "Id": "0",
+    "ObjectName": "default_weapon",
+    "StringName": "기본 무기",
+    "Damage": 10,
+    "Range-px": 150,
+    "Cooldown": 0.5,
+    "AttackType": "no_projectile",
+    "Filter": "FirstTarget",
+    "IsPerformDisable": false,
+    "PreDelay": 0.0,
+    "AfterDelay": 0.0,
+    "Rarity": 1,
+    "Desc": "기본 무기 데이터"
+  }
+};
+
+const ENUM_SCHEMAS = {
+  "AttackType": ["no_projectile", "projectile"],
+  "ProjectileType": ["Bullet", "FlameStrike", "Custom"],
+  "Filter": ["TargetInRange", "FirstTarget", "Custom"]
+};
+
+let weaponData = {};
+let currentKey = null;
+let historyStack = [];
+let historyIndex = -1;
+
+function parseRobustJson(text) {
+  if (!text || typeof text !== 'string') throw new Error('입력 텍스트가 비어있습니다.');
+  let raw = text.replace(/^\uFEFF/, '').trim();
+  try {
+    return JSON.parse(raw);
+  } catch (initialErr) {
+    let cleaned = raw.replace(/("(?:\\.|[^"\\])*")|(\/\/.*$)|(\/\*[\s\S]*?\*\/)/gm, (match, str) => {
+      if (str) return str;
+      return '';
+    });
+    let prev = '';
+    while (cleaned !== prev) {
+      prev = cleaned;
+      cleaned = cleaned.replace(/,\s*([\}\]])/g, '$1');
+    }
+    try {
+      return JSON.parse(cleaned);
+    } catch (secondErr) {
+      throw new Error(`JSON 파싱 오류: ${initialErr.message}`);
+    }
+  }
+}
+
+function loadWeaponJsonText(text) {
+  let parsed = parseRobustJson(text);
+  if (Array.isArray(parsed)) {
+    const obj = {};
+    parsed.forEach((item, idx) => {
+      const id = item.Id !== undefined ? String(item.Id) : String(idx);
+      obj[id] = item;
+    });
+    parsed = obj;
+  }
+  weaponData = parsed || {};
+  const keys = Object.keys(weaponData);
+  currentKey = keys.length > 0 ? keys[0] : null;
+  recordState(true);
+  renderSidebar();
+  renderEditor();
+  updateJsonViewer();
+}
+
+async function init() {
+  weaponData = {};
+  currentKey = null;
+
+  // 1. Try loading path configured in EditorData/base_config.json
+  const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
+  if (typeof invokeFn === 'function') {
+    try {
+      const cfg = await invokeFn('get_base_config');
+      if (cfg && cfg.DBPath && cfg.DBPath.WeaponEdit) {
+        const filePath = cfg.DBPath.WeaponEdit;
+        const text = await invokeFn('read_file_text', { path: filePath });
+        if (text) {
+          loadWeaponJsonText(text);
+          console.log('Loaded Weapon DB from base_config:', filePath);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Could not auto-load from base_config path:', err);
+    }
+  }
+
+  // 2. Default clean empty state
+  weaponData = {
+    "0": {
+      "Id": "0",
+      "ObjectName": "default_weapon",
+      "StringName": "새 무기",
+      "Damage": 10,
+      "Range-px": 150,
+      "Cooldown": 0.5,
+      "AttackType": "no_projectile",
+      "Filter": "FirstTarget",
+      "IsPerformDisable": false,
+      "PreDelay": 0.0,
+      "AfterDelay": 0.0,
+      "Rarity": 1,
+      "Desc": "새 무기 데이터"
+    }
+  };
+  currentKey = "0";
+
+  recordState(true);
+  renderSidebar();
+  renderEditor();
+  updateJsonViewer();
+}
+
+/* History / Undo-Redo */
+function recordState(initial = false) {
+  const serialized = JSON.stringify(weaponData);
+  if (!initial) {
+    if (historyIndex < historyStack.length - 1) {
+      historyStack = historyStack.slice(0, historyIndex + 1);
+    }
+  }
+  historyStack.push(serialized);
+  if (historyStack.length > 40) historyStack.shift();
+  else historyIndex = historyStack.length - 1;
+
+  updateUndoRedoButtons();
+  updateJsonViewer();
+}
+
+function undo() {
+  if (historyIndex > 0) {
+    historyIndex--;
+    weaponData = JSON.parse(historyStack[historyIndex]);
+    if (!weaponData[currentKey]) currentKey = Object.keys(weaponData)[0] || null;
+    renderSidebar();
+    renderEditor();
+    updateUndoRedoButtons();
+    updateJsonViewer();
+  }
+}
+
+function redo() {
+  if (historyIndex < historyStack.length - 1) {
+    historyIndex++;
+    weaponData = JSON.parse(historyStack[historyIndex]);
+    if (!weaponData[currentKey]) currentKey = Object.keys(weaponData)[0] || null;
+    renderSidebar();
+    renderEditor();
+    updateUndoRedoButtons();
+    updateJsonViewer();
+  }
+}
+
+function updateUndoRedoButtons() {
+  document.getElementById('btnUndo').disabled = historyIndex <= 0;
+  document.getElementById('btnRedo').disabled = historyIndex >= historyStack.length - 1;
+}
+
+function openEscMenu() {
+  const modal = document.getElementById('escMenuModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeEscMenu() {
+  const modal = document.getElementById('escMenuModal');
+  if (modal) modal.style.display = 'none';
+  window.focus();
+  if (document.body) document.body.focus();
+}
+
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'CLOSE_ESC_MENU') {
+    closeEscMenu();
+  }
+});
+
+window.addEventListener('keydown', (e) => {
+  // Ctrl + S: Save
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    exportJson();
+    return;
+  }
+
+  // Ctrl + Z / Y: Undo / Redo
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+    if (e.shiftKey) redo();
+    else undo();
+    e.preventDefault();
+    return;
+  } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+    redo();
+    e.preventDefault();
+    return;
+  }
+
+  // ESC: System Menu or Close Modal
+  if (e.key === 'Escape') {
+    const escModal = document.getElementById('escMenuModal');
+    if (escModal && escModal.style.display === 'flex') {
+      e.preventDefault();
+      closeEscMenu();
+      return;
+    }
+
+    const batchModal = document.getElementById('batchModal');
+    if (batchModal && batchModal.classList.contains('active')) {
+      e.preventDefault();
+      closeBatchModal();
+      return;
+    }
+
+    const activeElem = document.activeElement;
+    const activeTag = activeElem ? activeElem.tagName.toLowerCase() : '';
+    const isTyping = (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select');
+
+    if (!isTyping) {
+      e.preventDefault();
+      openEscMenu();
+    }
+  }
+});
+
+/* Sidebar List, Sort & Filter */
+function renderSidebar() {
+  const listEl = document.getElementById('itemList');
+  const query = document.getElementById('searchFilter').value.toLowerCase().trim();
+  const typeFilter = document.getElementById('typeFilter').value;
+  const sortOrder = document.getElementById('sortOrder').value;
+
+  listEl.innerHTML = '';
+
+  let keys = Object.keys(weaponData);
+
+  keys = keys.filter(k => {
+    const item = weaponData[k];
+    const name = String(item.StringName || '').toLowerCase();
+    const objName = String(item.ObjectName || '').toLowerCase();
+    const id = String(item.Id ?? k).toLowerCase();
+
+    const matchesQuery = !query || name.includes(query) || objName.includes(query) || id.includes(query);
+    const matchesType = !typeFilter || item.AttackType === typeFilter;
+    return matchesQuery && matchesType;
+  });
+
+  keys.sort((a, b) => {
+    const itemA = weaponData[a];
+    const itemB = weaponData[b];
+    if (sortOrder === 'id_asc') return (parseInt(a) || 0) - (parseInt(b) || 0);
+    if (sortOrder === 'id_desc') return (parseInt(b) || 0) - (parseInt(a) || 0);
+    if (sortOrder === 'name_asc') return (itemA.StringName || '').localeCompare(itemB.StringName || '');
+    if (sortOrder === 'damage_desc') return (itemB.Damage || 0) - (itemA.Damage || 0);
+    if (sortOrder === 'rarity_desc') return (itemB.Rarity || 0) - (itemA.Rarity || 0);
+    return 0;
+  });
+
+  keys.forEach(k => {
+    const item = weaponData[k];
+    const name = item.StringName || '(무제)';
+    const objName = item.ObjectName || '-';
+    const id = item.Id ?? k;
+
+    const li = document.createElement('li');
+    li.className = `item-entry ${k === currentKey ? 'active' : ''}`;
+    li.onclick = () => selectItem(k);
+    li.innerHTML = `
+      <div class="item-title">${name}</div>
+      <div class="item-meta">
+        <span>[ID: ${id}] ${objName}</span>
+        <span>${item.AttackType || ''}</span>
+      </div>
+    `;
+    listEl.appendChild(li);
+  });
+}
+
+function selectItem(key) {
+  currentKey = key;
+  renderSidebar();
+  renderEditor();
+  updateJsonViewer();
+}
+
+/* Form Editor Rendering */
+function renderEditor() {
+  const container = document.getElementById('editorContainer');
+  if (!currentKey || !weaponData[currentKey]) {
+    container.innerHTML = `<div class="empty-state">편집할 무기를 목록에서 선택하세요.</div>`;
+    return;
+  }
+
+  const item = weaponData[currentKey];
+
+  container.innerHTML = `
+    <div class="editor-header">
+      <div>
+        <h2 style="font-size: 16px; font-weight: 700; color: #fff;">${item.StringName || '이름 없음'} <span style="font-size: 12px; color: var(--text-dim); font-weight: normal;">(ID: ${currentKey})</span></h2>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="secondary sm" onclick="duplicateItem('${currentKey}')">무기 복제</button>
+        <button class="danger sm" onclick="deleteItem('${currentKey}')">무기 삭제</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">속성 목록</div>
+      <div id="propFields"></div>
+
+      <div style="margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border);">
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-dim); margin-bottom: 8px;">새 속성 추가</div>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="newKeyName" placeholder="속성 키 (예: AttackAngle-deg)" style="flex:2;">
+          <select id="newKeyType" style="flex:1.2;">
+            <option value="string">String (문자)</option>
+            <option value="number">Number (숫자)</option>
+            <option value="boolean">Boolean (참/거짓)</option>
+            <option value="array">Array (숫자 배열)</option>
+          </select>
+          <button onclick="addNewProperty()" style="flex:1;">+ 추가</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const fieldsContainer = document.getElementById('propFields');
+
+  Object.keys(item).forEach(prop => {
+    const val = item[prop];
+    const row = document.createElement('div');
+    row.className = 'property-grid';
+
+    let inputMarkup = '';
+
+    if (prop === 'Id') {
+      inputMarkup = `<input type="text" value="${val}" onchange="changeWeaponId(this.value)">`;
+    } else if (ENUM_SCHEMAS[prop]) {
+      const opts = ENUM_SCHEMAS[prop];
+      let optionsHtml = opts.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('');
+      if (!opts.includes(val) && val) {
+        optionsHtml += `<option value="${val}" selected>${val}</option>`;
+      }
+      inputMarkup = `<select onchange="updateField('${prop}', this.value)">${optionsHtml}</select>`;
+    } else if (Array.isArray(val)) {
+      const tagsHtml = val.map((itemVal, idx) => `
+        <span class="tag-chip">
+          ${itemVal}
+          <button onclick="removeArrayItem('${prop}', ${idx})">✕</button>
+        </span>
+      `).join('');
+
+      inputMarkup = `
+        <div>
+          <div class="tags-container">${tagsHtml || '<span style="color:var(--text-dim); font-size:11px;">(배열 비어있음)</span>'}</div>
+          <div class="tag-add-box">
+            <input type="number" id="tag_input_${prop}" placeholder="값 입력">
+            <button class="secondary sm" onclick="addArrayItem('${prop}')">+ 추가</button>
+          </div>
+        </div>
+      `;
+    } else if (typeof val === 'boolean') {
+      inputMarkup = `
+        <div class="checkbox-wrapper">
+          <input type="checkbox" ${val ? 'checked' : ''} onchange="updateField('${prop}', this.checked)">
+        </div>
+      `;
+    } else if (typeof val === 'number') {
+      inputMarkup = `<input type="number" step="any" value="${val}" onchange="updateField('${prop}', parseFloat(this.value) || 0)">`;
+    } else {
+      if (prop === 'Desc') {
+        inputMarkup = `<textarea onchange="updateField('${prop}', this.value)">${val}</textarea>`;
+      } else {
+        inputMarkup = `<input type="text" value="${val}" onchange="updateField('${prop}', this.value)">`;
+      }
+    }
+
+    const typeDesc = Array.isArray(val) ? 'arr' : typeof val;
+    row.innerHTML = `
+      <div class="prop-label" title="${prop}">${prop} <span>[${typeDesc}]</span></div>
+      <div>${inputMarkup}</div>
+      <button class="danger" style="padding: 4px;" onclick="removeProperty('${prop}')" title="속성 삭제">✕</button>
+    `;
+    fieldsContainer.appendChild(row);
+  });
+}
+
+/* Field Updates */
+function updateField(prop, value) {
+  if (!currentKey || !weaponData[currentKey]) return;
+  weaponData[currentKey][prop] = value;
+  recordState();
+  if (['StringName', 'ObjectName', 'AttackType', 'Damage', 'Rarity'].includes(prop)) {
+    renderSidebar();
+  }
+}
+
+function changeWeaponId(newId) {
+  newId = String(newId).trim();
+  if (!newId || newId === currentKey) return;
+  if (weaponData[newId]) {
+    alert('이미 존재하는 ID입니다. 다른 ID를 입력하세요.');
+    renderEditor();
+    return;
+  }
+
+  const obj = weaponData[currentKey];
+  obj.Id = newId;
+
+  delete weaponData[currentKey];
+  weaponData[newId] = obj;
+  currentKey = newId;
+
+  recordState();
+  renderSidebar();
+  renderEditor();
+}
+
+function addArrayItem(prop) {
+  const input = document.getElementById(`tag_input_${prop}`);
+  const val = parseFloat(input.value);
+  if (isNaN(val)) return;
+
+  if (!Array.isArray(weaponData[currentKey][prop])) {
+    weaponData[currentKey][prop] = [];
+  }
+  weaponData[currentKey][prop].push(val);
+  input.value = '';
+  recordState();
+  renderEditor();
+}
+
+function removeArrayItem(prop, idx) {
+  weaponData[currentKey][prop].splice(idx, 1);
+  recordState();
+  renderEditor();
+}
+
+function addNewProperty() {
+  const keyInput = document.getElementById('newKeyName');
+  const typeSelect = document.getElementById('newKeyType');
+  const key = keyInput.value.trim();
+
+  if (!key) return alert('속성 이름을 입력하세요.');
+  if (weaponData[currentKey].hasOwnProperty(key)) return alert('이미 존재하는 속성입니다.');
+
+  let val = '';
+  if (typeSelect.value === 'number') val = 0;
+  else if (typeSelect.value === 'boolean') val = false;
+  else if (typeSelect.value === 'array') val = [];
+
+  weaponData[currentKey][key] = val;
+  recordState();
+  renderEditor();
+}
+
+function removeProperty(prop) {
+  if (confirm(`'${prop}' 속성을 삭제하시겠습니까?`)) {
+    delete weaponData[currentKey][prop];
+    recordState();
+    renderEditor();
+  }
+}
+
+/* Item Operations */
+function addItem() {
+  const newId = prompt('새 무기의 고유 ID를 입력하세요:', Date.now().toString());
+  if (!newId) return;
+  if (weaponData[newId]) return alert('이미 존재하는 ID입니다.');
+
+  weaponData[newId] = {
+    "Id": newId,
+    "ObjectName": "new_weapon",
+    "StringName": "새 무기",
+    "Damage": 1,
+    "Cooldown": 1.0,
+    "IsPerformDisable": false,
+    "Desc": ""
+  };
+
+  currentKey = newId;
+  recordState();
+  renderSidebar();
+  renderEditor();
+}
+
+function duplicateItem(key) {
+  let counter = 1;
+  let newId = `${key}_copy`;
+  while (weaponData[newId]) {
+    newId = `${key}_copy_${counter++}`;
+  }
+
+  const copy = JSON.parse(JSON.stringify(weaponData[key]));
+  copy.Id = newId;
+  copy.StringName = `${copy.StringName || '무기'} (복사본)`;
+
+  weaponData[newId] = copy;
+  currentKey = newId;
+  recordState();
+  renderSidebar();
+  renderEditor();
+}
+
+function deleteItem(key) {
+  if (confirm(`[${key}] 무기 데이터를 삭제하시겠습니까?`)) {
+    delete weaponData[key];
+    currentKey = Object.keys(weaponData)[0] || null;
+    recordState();
+    renderSidebar();
+    renderEditor();
+  }
+}
+
+/* Batch Operations */
+function openBatchModal() { document.getElementById('batchModal').classList.add('active'); }
+function closeBatchModal() { document.getElementById('batchModal').classList.remove('active'); }
+
+function executeBatchAdd() {
+  const key = document.getElementById('batchPropKey').value.trim();
+  const type = document.getElementById('batchPropType').value;
+  const valRaw = document.getElementById('batchPropVal').value.trim();
+
+  if (!key) return alert('속성명을 입력하세요.');
+
+  let val = valRaw;
+  if (type === 'number') val = parseFloat(valRaw) || 0;
+  if (type === 'boolean') val = valRaw === 'true' || valRaw === '1';
+
+  Object.keys(weaponData).forEach(k => {
+    if (!weaponData[k].hasOwnProperty(key)) {
+      weaponData[k][key] = val;
+    }
+  });
+
+  recordState();
+  renderEditor();
+  closeBatchModal();
+  alert(`전체 무기에 '${key}' 속성이 추가되었습니다.`);
+}
+
+function executeBatchRemove() {
+  const key = document.getElementById('batchRemoveKey').value.trim();
+  if (!key) return alert('삭제할 속성명을 입력하세요.');
+
+  if (confirm(`모든 무기에서 '${key}' 속성을 완전히 삭제하시겠습니까?`)) {
+    Object.keys(weaponData).forEach(k => {
+      delete weaponData[k][key];
+    });
+    recordState();
+    renderEditor();
+    closeBatchModal();
+    alert(`전체 무기에서 '${key}' 속성이 삭제되었습니다.`);
+  }
+}
+
+/* JSON Viewer Pane */
+function toggleJsonViewer() {
+  document.getElementById('jsonViewerPane').classList.toggle('hidden');
+}
+
+function updateJsonViewer() {
+  const viewer = document.getElementById('jsonViewerText');
+  if (!viewer) return;
+  if (currentKey && weaponData[currentKey]) {
+    viewer.value = JSON.stringify(weaponData[currentKey], null, 2);
+  } else {
+    viewer.value = JSON.stringify(weaponData, null, 2);
+  }
+}
+
+function copyJsonToClipboard() {
+  const viewer = document.getElementById('jsonViewerText');
+  navigator.clipboard.writeText(viewer.value).then(() => {
+    alert('클립보드에 복사되었습니다.');
+  });
+}
+
+async function openJsonFileViaDialog() {
+  const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
+  if (typeof invokeFn === 'function') {
+    try {
+      const filePath = await invokeFn('open_file_dialog', { filterExt: 'json' });
+      if (filePath) {
+        const text = await invokeFn('read_file_text', { path: filePath });
+        loadWeaponJsonText(text);
+        await invokeFn('update_db_path', { editorKey: 'WeaponEdit', path: filePath });
+        console.log(`[무기 DB 로드 완료] ${filePath}`);
+      }
+      return;
+    } catch (e) {
+      console.warn('Native open dialog error:', e);
+    }
+  }
+  document.getElementById('fileInputJson').click();
+}
+
+/* Import / Export Handlers */
+function handleJsonUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      loadWeaponJsonText(evt.target.result);
+    } catch (err) {
+      alert('유효한 JSON 파일이 아닙니다: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* Robust File Downloader & Backend Auto-Save */
+async function saveFileDirectly(filename, content, mimeType) {
+  // 1. Native Tauri Save File Dialog (Opens Windows Explorer Save Dialog)
+  const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke || window.__TAURI_INVOKE__;
+  if (typeof invokeFn === 'function') {
+    try {
+      const savedPath = await invokeFn('save_file_dialog', {
+        defaultName: filename,
+        content: content
+      });
+      if (savedPath) {
+        if (filename.endsWith('.json')) {
+          await invokeFn('update_db_path', { editorKey: 'WeaponEdit', path: savedPath });
+        }
+        alert(`✅ [파일 저장 완료]\n${savedPath}`);
+      }
+      return;
+    } catch (err) {
+      console.warn('Tauri native dialog invoke error:', err);
+    }
+  }
+
+  // 2. C# Backend direct save to GameData folder
+  let backendSaved = false;
+  let backendPath = '';
+  try {
+    const res = await fetch('http://127.0.0.1:5005/api/files/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileName: filename, content: content })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      backendSaved = true;
+      backendPath = data.path || '';
+    }
+  } catch (e) {
+    // Standalone / Offline mode fallback
+  }
+
+  // 3. Webview / Browser download trigger
+  try {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      if (document.body.contains(a)) document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 2000);
+  } catch (err) {
+    console.warn('Browser download trigger:', err);
+  }
+
+  if (backendSaved) {
+    alert(`✅ [저장 완료]\n- GameData/${filename} 경로에 안전하게 저장되었습니다.\n(${backendPath})`);
+  } else {
+    alert(`💾 [저장 요청 완료] ${filename} 파일 저장이 시작되었습니다.`);
+  }
+}
+
+function exportJson() {
+  const jsonStr = JSON.stringify(weaponData, null, 2);
+  saveFileDirectly('weapon_db.json', jsonStr, 'application/json');
+}
+
+/* CSV Export & Import */
+function exportCsv() {
+  const keys = Object.keys(weaponData);
+  if (keys.length === 0) return alert('내보낼 데이터가 없습니다.');
+
+  const headersSet = new Set(['Id']);
+  keys.forEach(k => {
+    Object.keys(weaponData[k]).forEach(prop => headersSet.add(prop));
+  });
+  const headers = Array.from(headersSet);
+
+  let csvContent = headers.join(',') + '\n';
+
+  keys.forEach(k => {
+    const item = weaponData[k];
+    const row = headers.map(header => {
+      let val = item[header];
+      if (val === undefined || val === null) val = '';
+      if (typeof val === 'object') val = JSON.stringify(val);
+      val = String(val).replace(/"/g, '""');
+      return `"${val}"`;
+    });
+    csvContent += row.join(',') + '\n';
+  });
+
+  const fullCsv = "\uFEFF" + csvContent;
+  saveFileDirectly('weapon_db.csv', fullCsv, 'text/csv;charset=utf-8;');
+}
+
+function handleCsvUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const text = evt.target.result;
+      const rows = parseCsvText(text);
+      if (rows.length < 2) return alert('CSV 데이터가 유효하지 않습니다.');
+
+      const headers = rows[0];
+      const newDb = {};
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0 || (row.length === 1 && !row[0])) continue;
+        const obj = {};
+        headers.forEach((h, idx) => {
+          let val = row[idx] !== undefined ? row[idx] : '';
+          if (val === 'true') val = true;
+          else if (val === 'false') val = false;
+          else if (!isNaN(val) && val.trim() !== '') val = Number(val);
+          else if (val.startsWith('[') && val.endsWith(']')) {
+            try { val = JSON.parse(val); } catch(err) {}
+          }
+          obj[h] = val;
+        });
+
+        const id = String(obj.Id !== undefined ? obj.Id : i - 1);
+        newDb[id] = obj;
+      }
+
+      weaponData = newDb;
+      currentKey = Object.keys(weaponData)[0] || null;
+      recordState();
+      renderSidebar();
+      renderEditor();
+    } catch (err) {
+      alert('CSV 파싱 오류가 발생했습니다.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function parseCsvText(text) {
+  const lines = [];
+  let row = [];
+  let inQuotes = false;
+  let current = '';
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push(current);
+      current = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') i++;
+      row.push(current);
+      lines.push(row);
+      row = [];
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  if (current || row.length > 0) {
+    row.push(current);
+    lines.push(row);
+  }
+  return lines;
+}
+
+// 애플리케이션 시작
+init();
+</script>
+</body>
+</html>

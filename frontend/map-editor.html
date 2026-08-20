@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Espada de noche - 지도 편집기</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 14px;
+      background: #0f111a;
+      color: #e2e8f0;
+      font-family: 'Noto Sans KR', 'Consolas', 'D2Coding', monospace;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      gap: 10px;
+      user-select: none;
+    }
+
+    /* 상단 컨트롤 바 */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #161925;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #2f354f;
+      flex-wrap: wrap;
+    }
+    .brand-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: 4px;
+    }
+    .top-bar label { font-size: 12px; font-weight: 600; color: #94a3b8; }
+    .top-bar input[type="number"] {
+      width: 60px;
+      padding: 5px 8px;
+      background: #262b42;
+      border: 1px solid #2f354f;
+      color: #fff;
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      outline: none;
+    }
+    .top-bar input[type="number"]:focus {
+      border-color: #6366f1;
+    }
+    button {
+      padding: 6px 12px;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      font-family: inherit;
+      font-size: 12px;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    button:hover { background: #4338ca; }
+    .btn-hub { background: #334155; }
+    .btn-hub:hover { background: #475569; }
+    .btn-green { background: #10b981; }
+    .btn-green:hover { background: #059669; }
+    .btn-blue { background: #0284c7; }
+    .btn-blue:hover { background: #0369a1; }
+    .btn-gray { background: #475569; }
+    .btn-gray:hover { background: #334155; }
+    .btn-icon {
+      padding: 6px 9px;
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    /* 메인 워크스페이스 */
+    .workspace {
+      display: flex;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* 좌측 사이드바 (팔레트) */
+    .sidebar {
+      width: 260px;
+      background: #161925;
+      border: 1px solid #2f354f;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sidebar h4 { margin: 0; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #2f354f; padding-bottom: 6px; }
+    .palette-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow-y: auto;
+      flex: 1;
+      padding-right: 4px;
+    }
+    .palette-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      background: #1e2235;
+      border: 1px solid #2f354f;
+      border-radius: 6px;
+      cursor: grab;
+      color: #fff;
+      font-size: 12px;
+      transition: all 0.15s;
+    }
+    .palette-btn:active {
+      cursor: grabbing;
+    }
+    .palette-btn.active {
+      border-color: #8b5cf6;
+      background: #2d334d;
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+    }
+    .palette-btn.dragging {
+      opacity: 0.4;
+    }
+    .palette-btn.drag-over {
+      border-top: 2px dashed #38bdf8;
+    }
+    .palette-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+
+    /* 타일 삭제 버튼 */
+    .palette-del-btn {
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      background: #f43f5e;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      font-size: 13px;
+      font-weight: bold;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .palette-del-btn:hover {
+      background: #e11d48;
+    }
+
+    /* 타일 추가 입력부 */
+    .add-tile-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border-top: 1px solid #2f354f;
+      padding-top: 8px;
+    }
+    .add-tile-inputs {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .add-tile-inputs input[type="text"] {
+      background: #262b42;
+      border: 1px solid #2f354f;
+      color: #fff;
+      border-radius: 4px;
+      font-family: inherit;
+      padding: 5px 6px;
+      font-size: 11px;
+      outline: none;
+    }
+    .add-tile-inputs input[type="color"] {
+      width: 30px;
+      height: 27px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* 팔레트 입출력 버튼 그룹 */
+    .palette-io {
+      display: flex;
+      gap: 4px;
+      border-top: 1px solid #2f354f;
+      padding-top: 8px;
+    }
+    .palette-io button { flex: 1; padding: 5px; font-size: 11px; }
+
+    /* 맵 뷰포트 */
+    .viewport {
+      flex: 1;
+      background: #141622;
+      border: 1px solid #2f354f;
+      border-radius: 8px;
+      padding: 16px;
+      overflow: auto;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+    #grid {
+      display: grid;
+      gap: 1px;
+      background: #24293e;
+      padding: 1px;
+      border-radius: 4px;
+    }
+    .cell {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* 하단 출력부 */
+    .bottom-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    textarea {
+      width: 100%;
+      height: 85px;
+      background: #141622;
+      color: #38bdf8;
+      border: 1px solid #2f354f;
+      border-radius: 6px;
+      padding: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 11px;
+      resize: vertical;
+      outline: none;
+    }
+    textarea:focus { border-color: #6366f1; }
+
+    /* 모달 레이어 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.open {
+      display: flex;
+    }
+    .modal-box {
+      background: #161925;
+      border: 1px solid #6366f1;
+      border-radius: 8px;
+      width: 320px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    .modal-box h3 {
+      margin: 0;
+      font-size: 14px;
+      color: #fff;
+      border-bottom: 1px solid #2f354f;
+      padding-bottom: 8px;
+    }
+    .modal-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .modal-form-group label {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .modal-form-group input {
+      background: #262b42;
+      border: 1px solid #2f354f;
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      outline: none;
+    }
+    .modal-form-group input:focus { border-color: #6366f1; }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 상단 컨트롤 바 -->
+  <div class="top-bar">
+    <button class="btn-hub" onclick="location.href='index.html'">🏠 허브로</button>
+    <div class="brand-title">🗺️ 지도 편집기</div>
+    <label>가로:</label>
+    <input type="number" id="mapWidth" value="24" min="1" max="256">
+    <label>세로:</label>
+    <input type="number" id="mapHeight" value="24" min="1" max="256">
+    <button onclick="resizeMap()">맵 리셋</button>
+    <button class="btn-gray btn-icon" onclick="openMetaModal()" title="메타데이터 설정">🌐 메타</button>
+    <button class="btn-green" onclick="saveMapFile()">💾 맵 저장</button>
+    <button class="btn-blue" onclick="openMapFile()">📂 맵 열기</button>
+    <button class="btn-gray" onclick="exportJSON()">JSON 추출</button>
+    <button class="btn-gray" onclick="copyJSON()">복사</button>
+    <span style="font-size: 11px; color: #64748b; margin-left: auto;">단축키: 기호 키 입력 | 좌클릭: 배치 | 우클릭: 지우기 (.)</span>
+  </div>
+
+  <!-- 메인 작업 영역 -->
+  <div class="workspace">
+    <!-- 좌측 타일 팔레트 -->
+    <div class="sidebar">
+      <h4>타일 선택 (드래그 순서 변경)</h4>
+      <div class="palette-list" id="paletteList"></div>
+
+      <!-- 기호 추가 섹션 -->
+      <div class="add-tile-box">
+        <label style="font-size: 11px; color: #aaa;">새 기호 추가</label>
+        <div class="add-tile-inputs">
+          <input type="text" id="newSymbol" maxlength="1" placeholder="기호" style="width: 36px; text-align: center;" title="기호 (1글자)">
+          <input type="color" id="newColor" value="#f59e0b" title="표시 색상">
+          <input type="text" id="newLabel" placeholder="이름 (예: 플레이어)" style="flex: 1;" title="기호 이름">
+        </div>
+        <button onclick="addNewTile()" style="width: 100%; margin-top: 2px;">타일 등록</button>
+      </div>
+
+      <!-- 타일 정보 저장/불러오기 -->
+      <div class="palette-io">
+        <button class="btn-gray" onclick="exportPalette()">타일 저장</button>
+        <button class="btn-gray" onclick="document.getElementById('paletteFileInput').click()">타일 로드</button>
+        <input type="file" id="paletteFileInput" accept=".json" style="display:none" onchange="importPalette(event)">
+      </div>
+    </div>
+
+    <!-- 중앙 격자 맵 -->
+    <div class="viewport" id="viewport">
+      <div id="grid"></div>
+    </div>
+  </div>
+
+  <!-- 하단 JSON 입출력 -->
+  <div class="bottom-bar">
+    <textarea id="jsonOutput" placeholder="맵 JSON 데이터를 여기에 붙여넣고 [JSON 불러오기]를 누르거나, [JSON 추출]을 눌러 결과를 확인하세요."></textarea>
+  </div>
+
+  <!-- 메타데이터 설정 모달 -->
+  <div class="modal-overlay" id="metaModal">
+    <div class="modal-box">
+      <h3>맵 메타데이터 입력</h3>
+      <div class="modal-form-group">
+        <label>맵 이름 (map-name)</label>
+        <input type="text" id="metaMapName" placeholder="예: 던전 입구">
+      </div>
+      <div class="modal-form-group">
+        <label>게임 내 표기 (map-ingame)</label>
+        <input type="text" id="metaMapIngame" placeholder="예: Stage 1-1">
+      </div>
+      <div class="modal-form-group">
+        <label>맵 레벨 (map-level)</label>
+        <input type="text" id="metaMapNumber" placeholder="예: 101">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-gray" onclick="closeMetaModal()">취소</button>
+        <button class="btn-blue" onclick="saveMetaModal()">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- System / Pause Menu Modal (menu.html) -->
+  <div id="escMenuModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.65); z-index:999999; align-items:center; justify-content:center;">
+    <iframe src="menu.html" style="width:340px; height:240px; border:none; background:transparent;" allowtransparency="true"></iframe>
+  </div>
+
+  <script>
+    let width = 24;
+    let height = 24;
+    let mapData = [];
+
+    // 메타데이터 상태
+    let mapMetadata = {
+      "map-name": "",
+      "map-ingame": "",
+      "map-level": ""
+    };
+
+    // 기본 타일 팔레트
+    let tilePalette = [
+      { symbol: '#', color: '#6b7280', label: '전장 벽 (#)' },
+      { symbol: '.', color: '#111827', label: '바닥 (.)' }
+    ];
+    let currentTile = tilePalette[0];
+
+    let draggedTileIndex = null;
+
+    document.addEventListener('contextmenu', (e) => {
+      if (e.target.closest('#grid') || e.target.closest('.viewport')) {
+        e.preventDefault();
+      }
+    });
+
+    function openEscMenu() {
+      const modal = document.getElementById('escMenuModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeEscMenu() {
+      const modal = document.getElementById('escMenuModal');
+      if (modal) modal.style.display = 'none';
+      window.focus();
+      if (document.body) document.body.focus();
+    }
+
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'CLOSE_ESC_MENU') {
+        closeEscMenu();
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      // Ctrl + S: Save
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveMapFile();
+        return;
+      }
+
+      // ESC: System Menu or Close Meta Modal
+      if (e.key === 'Escape') {
+        const escModal = document.getElementById('escMenuModal');
+        if (escModal && escModal.style.display === 'flex') {
+          e.preventDefault();
+          closeEscMenu();
+          return;
+        }
+
+        const metaModal = document.getElementById('metaModal');
+        if (metaModal && metaModal.classList.contains('active')) {
+          e.preventDefault();
+          closeMetaModal();
+          return;
+        }
+
+        const activeElem = document.activeElement;
+        const activeTag = activeElem ? activeElem.tagName.toLowerCase() : '';
+        const isTyping = (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select');
+
+        if (!isTyping) {
+          e.preventDefault();
+          openEscMenu();
+          return;
+        }
+      }
+
+      const activeTag = document.activeElement ? document.activeElement.tagName : '';
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+
+      const pressedKey = e.key;
+      const targetTile = tilePalette.find(t => t.symbol === pressedKey);
+      if (targetTile) selectTile(targetTile);
+    });
+
+    function renderPalette() {
+      const listEl = document.getElementById('paletteList');
+      listEl.innerHTML = '';
+
+      tilePalette.forEach((tile, index) => {
+        const btn = document.createElement('div');
+        btn.className = `palette-btn ${tile.symbol === currentTile.symbol ? 'active' : ''}`;
+        btn.draggable = true;
+
+        btn.onclick = () => selectTile(tile);
+
+        btn.addEventListener('dragstart', (e) => {
+          draggedTileIndex = index;
+          btn.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+
+        btn.addEventListener('dragend', () => {
+          btn.classList.remove('dragging');
+          document.querySelectorAll('.palette-btn').forEach(el => el.classList.remove('drag-over'));
+        });
+
+        btn.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          btn.classList.add('drag-over');
+        });
+
+        btn.addEventListener('dragleave', () => {
+          btn.classList.remove('drag-over');
+        });
+
+        btn.addEventListener('drop', (e) => {
+          e.preventDefault();
+          btn.classList.remove('drag-over');
+          if (draggedTileIndex === null || draggedTileIndex === index) return;
+
+          const movedItem = tilePalette.splice(draggedTileIndex, 1)[0];
+          tilePalette.splice(index, 0, movedItem);
+          draggedTileIndex = null;
+          renderPalette();
+        });
+
+        const colorBox = document.createElement('span');
+        colorBox.className = 'palette-color';
+        colorBox.style.backgroundColor = tile.color;
+
+        const label = document.createElement('span');
+        label.textContent = tile.label || `기호 [ ${tile.symbol} ]`;
+        label.style.overflow = 'hidden';
+        label.style.textOverflow = 'ellipsis';
+        label.style.whiteSpace = 'nowrap';
+        label.style.flex = '1';
+
+        btn.appendChild(colorBox);
+        btn.appendChild(label);
+
+        if (tile.symbol !== '.') {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'palette-del-btn';
+          delBtn.textContent = '−';
+          delBtn.title = `'${tile.symbol}' 타일 삭제 및 맵에서 제거`;
+          delBtn.onclick = (e) => deleteTile(tile.symbol, e);
+          btn.appendChild(delBtn);
+        }
+
+        listEl.appendChild(btn);
+      });
+    }
+
+    function selectTile(tile) {
+      currentTile = tile;
+      renderPalette();
+    }
+
+    function openMetaModal() {
+      document.getElementById('metaMapName').value = mapMetadata['map-name'] || '';
+      document.getElementById('metaMapIngame').value = mapMetadata['map-ingame'] || '';
+      document.getElementById('metaMapNumber').value = mapMetadata['map--level'] || '';
+      document.getElementById('metaModal').classList.add('open');
+    }
+
+    function closeMetaModal() {
+      document.getElementById('metaModal').classList.remove('open');
+    }
+
+    function saveMetaModal() {
+      mapMetadata['map-name'] = document.getElementById('metaMapName').value.trim();
+      mapMetadata['map-ingame'] = document.getElementById('metaMapIngame').value.trim();
+      mapMetadata['map-level'] = document.getElementById('metaMapNumber').value.trim();
+      closeMetaModal();
+    }
+
+    function deleteTile(symbol, event) {
+      if (event) event.stopPropagation();
+
+      if (symbol === '.') {
+        alert("기본 바닥('.') 타일은 삭제할 수 없습니다.");
+        return;
+      }
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (mapData[y][x] === symbol) {
+            mapData[y][x] = '.';
+          }
+        }
+      }
+
+      tilePalette = tilePalette.filter(t => t.symbol !== symbol);
+
+      if (currentTile && currentTile.symbol === symbol) {
+        currentTile = tilePalette[0] || { symbol: '.', color: '#111827', label: '바닥 (.)' };
+      }
+
+      renderPalette();
+      renderGrid();
+    }
+
+    function addNewTile() {
+      const symbolInput = document.getElementById('newSymbol');
+      const colorInput = document.getElementById('newColor');
+      const labelInput = document.getElementById('newLabel');
+      
+      const symbol = symbolInput.value.trim();
+      const labelText = labelInput.value.trim();
+
+      if (!symbol) {
+        alert('기호를 1글자 입력하세요.');
+        return;
+      }
+
+      const displayLabel = labelText ? `${labelText} (${symbol})` : `기호 [ ${symbol} ]`;
+
+      const existing = tilePalette.find(t => t.symbol === symbol);
+      if (existing) {
+        existing.color = colorInput.value;
+        if (labelText) existing.label = displayLabel;
+        selectTile(existing);
+        renderGrid();
+        return;
+      }
+
+      const newTile = {
+        symbol: symbol,
+        color: colorInput.value,
+        label: displayLabel
+      };
+
+      tilePalette.push(newTile);
+      selectTile(newTile);
+      symbolInput.value = '';
+      labelInput.value = '';
+    }
+
+    let currentPaletteFilePath = null;
+
+    async function exportPalette() {
+      const jsonStr = JSON.stringify(tilePalette, null, 2);
+      const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
+
+      if (typeof invokeFn === 'function') {
+        try {
+          let targetPath = currentPaletteFilePath;
+          if (!targetPath) {
+            const cfg = await invokeFn('get_base_config');
+            if (cfg && cfg.DBPath && cfg.DBPath.MapTileEdit) {
+              targetPath = cfg.DBPath.MapTileEdit;
+            }
+          }
+
+          if (targetPath) {
+            await invokeFn('write_file_text', { path: targetPath, content: jsonStr });
+            await invokeFn('update_db_path', { editorKey: 'MapTileEdit', editor_key: 'MapTileEdit', path: targetPath });
+            alert(`🎉 [타일 팔레트 자동 저장 완료]\n${targetPath}`);
+            return;
+          }
+
+          const savedPath = await invokeFn('save_file_dialog', {
+            defaultName: 'tile_palette.json',
+            content: jsonStr
+          });
+          if (savedPath) {
+            currentPaletteFilePath = savedPath;
+            await invokeFn('update_db_path', { editorKey: 'MapTileEdit', editor_key: 'MapTileEdit', path: savedPath });
+            alert(`🎉 [타일 팔레트 저장 완료]\n${savedPath}`);
+          }
+          return;
+        } catch (err) {
+          alert(`타일 팔레트 저장 실패: ${err.message || err}`);
+          return;
+        }
+      }
+
+      // Browser fallback
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tile_palette.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function loadPaletteJsonText(rawText) {
+      const loadedPalette = parseRobustJson(rawText);
+      if (Array.isArray(loadedPalette)) {
+        tilePalette = loadedPalette;
+        currentTile = tilePalette[0] || { symbol: '#', color: '#6b7280', label: '벽 (#)' };
+        renderPalette();
+        renderGrid();
+      } else {
+        throw new Error('올바른 팔레트 JSON 형식이 아닙니다.');
+      }
+    }
+
+    async function importPalette(event) {
+      const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
+
+      if (typeof invokeFn === 'function') {
+        try {
+          const filePath = await invokeFn('open_file_dialog', { filterExt: 'json' });
+          if (filePath) {
+            const text = await invokeFn('read_file_text', { path: filePath });
+            loadPaletteJsonText(text);
+            currentPaletteFilePath = filePath;
+            await invokeFn('update_db_path', { editorKey: 'MapTileEdit', editor_key: 'MapTileEdit', path: filePath });
+            console.log(`[타일 팔레트 로드 완료] ${filePath}`);
+          }
+          return;
+        } catch (err) {
+          alert(`타일 팔레트 로드 실패: ${err.message || err}`);
+          return;
+        }
+      }
+
+      const file = event?.target?.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          loadPaletteJsonText(e.target.result);
+        } catch (err) {
+          alert('JSON 파싱 오류: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      if (event?.target) event.target.value = '';
+    }
+
+    function resizeMap() {
+      width = parseInt(document.getElementById('mapWidth').value, 10);
+      height = parseInt(document.getElementById('mapHeight').value, 10);
+
+      mapData = [];
+      for (let y = 0; y < height; y++) {
+        const row = [];
+        for (let x = 0; x < width; x++) {
+          row.push((x === 0 || x === width - 1 || y === 0 || y === height - 1) ? '#' : '.');
+        }
+        mapData.push(row);
+      }
+      renderGrid();
+    }
+
+    function renderGrid() {
+      const gridEl = document.getElementById('grid');
+      gridEl.innerHTML = '';
+      gridEl.style.gridTemplateColumns = `repeat(${width}, 20px)`;
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.x = x;
+          cell.dataset.y = y;
+
+          updateCellVisual(cell, mapData[y][x]);
+
+          cell.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            if (e.button === 2) {
+              paintCell(x, y, cell, '.');
+            } else if (e.button === 0) {
+              paintCell(x, y, cell, currentTile.symbol);
+            }
+          });
+
+          cell.addEventListener('mouseenter', (e) => {
+            if (e.buttons === 2) {
+              paintCell(x, y, cell, '.');
+            } else if (e.buttons === 1) {
+              paintCell(x, y, cell, currentTile.symbol);
+            }
+          });
+
+          gridEl.appendChild(cell);
+        }
+      }
+    }
+
+    function paintCell(x, y, cellElement, symbol) {
+      mapData[y][x] = symbol;
+      updateCellVisual(cellElement, symbol);
+    }
+
+    function updateCellVisual(cellElement, symbol) {
+      cellElement.textContent = symbol;
+      const tileInfo = tilePalette.find(t => t.symbol === symbol);
+      if (tileInfo) {
+        cellElement.style.backgroundColor = tileInfo.color;
+        cellElement.style.color = (symbol === '.') ? '#444' : '#fff';
+      } else {
+        cellElement.style.backgroundColor = '#374151';
+        cellElement.style.color = '#fff';
+      }
+    }
+
+    let currentMapFilePath = null;
+
+    function parseRobustJson(text) {
+      if (!text || typeof text !== 'string') throw new Error('입력 텍스트가 비어있습니다.');
+      let raw = text.replace(/^\uFEFF/, '').trim();
+      try {
+        return JSON.parse(raw);
+      } catch (initialErr) {
+        let cleaned = raw.replace(/("(?:\\.|[^"\\])*")|(\/\/.*$)|(\/\*[\s\S]*?\*\/)/gm, (match, str) => {
+          if (str) return str;
+          return '';
+        });
+        let prev = '';
+        while (cleaned !== prev) {
+          prev = cleaned;
+          cleaned = cleaned.replace(/,\s*([\}\]])/g, '$1');
+        }
+        try {
+          return JSON.parse(cleaned);
+        } catch (secondErr) {
+          throw new Error(`JSON 파싱 오류: ${initialErr.message}`);
+        }
+      }
+    }
+
+    function exportJSON() {
+      const rows = mapData.map(row => row.join(''));
+      const result = {
+        "map-name": mapMetadata["map-name"] || "",
+        "map-ingame": mapMetadata["map-ingame"] || "",
+        "map-level": mapMetadata["map-level"] || "",
+        "map-size": { width: width, height: height },
+        "map_data": rows
+      };
+      document.getElementById('jsonOutput').value = JSON.stringify(result, null, 2);
+    }
+
+    function loadMapJsonText(rawText) {
+      const parsed = parseRobustJson(rawText);
+      if (!parsed.map_data || !Array.isArray(parsed.map_data)) {
+        throw new Error('올바른 map_data 배열이 포함된 JSON이 아닙니다.');
+      }
+
+      mapMetadata["map-name"] = parsed["map-name"] || "";
+      mapMetadata["map-ingame"] = parsed["map-ingame"] || "";
+      mapMetadata["map-level"] = parsed["map-level"] || "";
+
+      const newHeight = parsed.map_data.length;
+      const newWidth = parsed.map_data[0].length;
+
+      width = newWidth;
+      height = newHeight;
+      document.getElementById('mapWidth').value = width;
+      document.getElementById('mapHeight').value = height;
+
+      mapData = [];
+      for (let y = 0; y < height; y++) {
+        const rowChars = parsed.map_data[y].split('');
+        rowChars.forEach(char => {
+          if (!tilePalette.some(t => t.symbol === char)) {
+            tilePalette.push({
+              symbol: char,
+              color: '#6366f1',
+              label: `기호 [ ${char} ]`
+            });
+          }
+        });
+        mapData.push(rowChars);
+      }
+
+      renderPalette();
+      renderGrid();
+      document.getElementById('jsonOutput').value = JSON.stringify(parsed, null, 2);
+    }
+
+    function importMapJSON() {
+      const rawText = document.getElementById('jsonOutput').value.trim();
+      if (!rawText) {
+        alert('하단 텍스트창에 맵 JSON을 입력하세요.');
+        return;
+      }
+
+      try {
+        loadMapJsonText(rawText);
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function openMapFile() {
+      const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
+      if (typeof invokeFn === 'function') {
+        try {
+          const filePath = await invokeFn('open_file_dialog', { filterExt: 'json' });
+          if (filePath) {
+            const text = await invokeFn('read_file_text', { path: filePath });
+            loadMapJsonText(text);
+            currentMapFilePath = filePath;
+            await invokeFn('update_db_path', { editorKey: 'MapEdit', path: filePath });
+            console.log(`[맵 DB 로드 완료] ${filePath}`);
+          }
+          return;
+        } catch (e) {
+          alert(`맵 파일 열기 오류: ${e.message || e}`);
+          return;
+        }
+      }
+
+      importMapJSON();
+    }
+
+    async function saveMapFile() {
+      const rows = mapData.map(row => row.join(''));
+      const result = {
+        "map-name": mapMetadata["map-name"] || "",
+        "map-ingame": mapMetadata["map-ingame"] || "",
+        "map-level": mapMetadata["map-level"] || "",
+        "map-size": { width: width, height: height },
+        "map_data": rows
+      };
+      const jsonStr = JSON.stringify(result, null, 2);
+      document.getElementById('jsonOutput').value = jsonStr;
+
+      const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
+      if (typeof invokeFn === 'function') {
+        try {
+          // 1. If we have a remembered path or last saved path, auto-save to that path!
+          let targetPath = currentMapFilePath;
+          if (!targetPath) {
+            const cfg = await invokeFn('get_base_config');
+            if (cfg && cfg.DBPath && cfg.DBPath.MapEdit) {
+              targetPath = cfg.DBPath.MapEdit;
+            }
+          }
+
+          if (targetPath) {
+            await invokeFn('write_file_text', { path: targetPath, content: jsonStr });
+            await invokeFn('update_db_path', { editorKey: 'MapEdit', path: targetPath });
+            alert(`🎉 [맵 파일 자동 저장 완료]\n${targetPath}`);
+            return;
+          }
+
+          // 2. If null or empty, open Save File Dialog
+          const defaultName = (mapMetadata["map-name"] || "map_data") + ".json";
+          const savedPath = await invokeFn('save_file_dialog', {
+            defaultName: defaultName,
+            content: jsonStr
+          });
+          if (savedPath) {
+            currentMapFilePath = savedPath;
+            await invokeFn('update_db_path', { editorKey: 'MapEdit', path: savedPath });
+            alert(`🎉 [맵 파일 저장 완료]\n${savedPath}`);
+          }
+          return;
+        } catch (err) {
+          alert(`맵 저장 실패: ${err.message || err}`);
+          return;
+        }
+      }
+
+      // Browser Fallback: Download Blob
+      try {
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (mapMetadata["map-name"] || "map_data") + ".json";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 2000);
+      } catch(e) {}
+    }
+
+    function copyJSON() {
+      const output = document.getElementById('jsonOutput');
+      if (!output.value) exportJSON();
+      output.select();
+      navigator.clipboard.writeText(output.value);
+    }
+
+    async function initMapEditor() {
+      renderPalette();
+      resizeMap();
+
+      const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
+      if (typeof invokeFn === 'function') {
+        try {
+          const cfg = await invokeFn('get_base_config');
+          // 1. Auto-load Tile Palette
+          if (cfg && cfg.DBPath && cfg.DBPath.MapTileEdit) {
+            const tilePath = cfg.DBPath.MapTileEdit;
+            const tileText = await invokeFn('read_file_text', { path: tilePath });
+            if (tileText) {
+              loadPaletteJsonText(tileText);
+              currentPaletteFilePath = tilePath;
+              console.log('Loaded Tile Palette from base_config:', tilePath);
+            }
+          }
+          // 2. Auto-load Map DB
+          if (cfg && cfg.DBPath && cfg.DBPath.MapEdit) {
+            const filePath = cfg.DBPath.MapEdit;
+            const text = await invokeFn('read_file_text', { path: filePath });
+            if (text) {
+              loadMapJsonText(text);
+              currentMapFilePath = filePath;
+              console.log('Loaded Map DB from base_config:', filePath);
+            }
+          }
+        } catch (err) {
+          console.warn('Could not auto-load from base_config:', err);
+        }
+      }
+    }
+
+    initMapEditor();
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# Rust compile outputs
+src-tauri/target/
+src-tauri/gen/
+target/
+
+# Tauri/App Distribution outputs
+dist/
+
+# Node modules & logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS and Editor metadata
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+.vscode/
+.idea/

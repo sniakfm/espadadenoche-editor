@@ -1,0 +1,16 @@
+[package]
+name = "espada_de_noche_editor"
+version = "0.1.0"
+description = "Espada de noche 데이터 편집기 - Tauri + C#"
+authors = ["Antigravity"]
+edition = "2021"
+build = "build.rs"
+
+[build-dependencies]
+tauri-build = { version = "2.0.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0.0", features = [] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rfd = "0.15"

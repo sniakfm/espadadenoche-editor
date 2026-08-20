@@ -1,0 +1,347 @@
+{
+  "1": {
+	"Id": 1,
+	"AbilityName": "Quicken",
+	"StringName": "신속",
+	"Race": "zombie",
+	"Attribute_Modifier": [
+	  {
+		"Attribute": "speed",
+		"Value": 0.33,
+		"Type": "Percent"
+	  }
+	],
+	"Tag": [
+	  "Visual{size:0.7,r:1.0,g:0.65,b:0.2,alpha:1.0}"
+	],
+	"AbilityType": "passive",
+	"Categories_Main": "body",
+	"Categories_Sub": "empower",
+	"Desc": "속도가 1.33배로 증가합니다. ",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "2": {
+	"Id": 2,
+	"AbilityName": "Colossus",
+	"StringName": "거체",
+	"Race": "zombie",
+	"Attribute_Modifier": [
+	  {
+		"Attribute": "health",
+		"Value": 3.0,
+		"Type": "Flat"
+	  },
+	  {
+		"Attribute": "tenacity",
+		"Value": 0.7,
+		"Type": "Flat"
+	  }
+	],
+	"Tag": [
+	  "Visual{size:1.8,r:0.5,g:0.45,b:0.4,alpha:1.0}"
+	],
+	"AbilityType": "passive",
+	"Categories_Main": "body",
+	"Categories_Sub": "empower",
+	"Desc": "(1) 이 유닛은 체력이 3 높습니다. (2) 강인함(Tenacity) 0.5를 가져 넉백 외력을 50% 감소시킵니다.",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "3": {
+	"Id": 3,
+	"AbilityName": "Leap",
+	"StringName": "도약",
+	"Range_Min": 200,
+	"Range_Max": 450,
+	"Race": "zombie",
+	"Duration_Cast": 1.3,
+	"Speed": 320,
+	"Tag": [
+	  "cast_channel",
+      "cooldown_when_end"
+	],
+	"Duration_Use": 0.7,
+	"AbilityType": "active",
+	"Categories_Main": "body",
+	"Categories_Sub": "strength",
+	"Desc": "1.3초의 집중(duration) 후 320의 속도로 0.7초간 점프해서 달려듭니다. (cast_channel은 사용 도중 아무것도 못하는 disable되는 플래그. Duration_use는 점프하는동안 아무것도 못하는 플래그 박아줌. cast는 사용후 다른 행동 입력시 취소하고 행동 가능) ",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "4": {
+	"Id": 4,
+	"AbilityName": "ShadowMeld",
+	"StringName": "그림자 숨기",
+	"Race": "zombie",
+	"Cooldown": 3,
+	"Duration": 0.7,
+	"Tag": [
+	  "free_action",
+      "cooldown_when_end",
+      "Visual{size:1.0,r:0.3,g:0.3,b:0.4,alpha:0.7}"
+	],
+	"AbilityType": "active",
+	"Categories_Main": "mind",
+	"Categories_Sub": "umbral",
+	"Desc": "0.7초간 몸을 숨깁니다. (좀비 ai에 스킬 캐스팅 달아주면 될듯)",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "5": {
+	"Id": 5,
+	"AbilityName": "Ranged",
+	"StringName": "팔이 긴 놈",
+	"Race": "zombie",
+	"Tag": [
+	],
+	"AbilityType": "passive",
+	"Categories_Main": "dummy",
+	"Categories_Sub": "none",
+	"Desc": "우리 팔은 길어도 나는 짧잖아!",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "100": {
+	"Id": 100,
+	"StringName": "달리기",
+	"AbilityName": "Dash",
+	"Race": "survivor",
+	"Range": 180,
+	"Duration": 0.4,
+	"Cooldown": 0.5,
+	"Tag": [
+	  "free_action",
+      "cooldown_when_end"
+	],
+	"AbilityType": "active",
+	"Categories_Main": "physical",
+	"Categories_Sub": "mobility",
+	"Desc": "달립니다. (duration 지속시간 (이 시간에 걸쳐 이동함), cooldown 쿨타임, range 이동 거리, free_action 플레이어 행동 방해 없음, cooldown_when_end 작동이 완전히 끝나야 쿨다운 돎, ATag 스킬 태그",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "101": {
+	"Id": 101,
+	"AbilityName": "FlameStrike",
+	"StringName": "화염참",
+	"Race": "survivor",
+	"Damage": 2,
+	"Cooldown": 1.2,
+	"Range": 300,
+	"Area": 50,
+	"Filter": "enemy,zombie",
+	"Tag": [
+	  "auto",
+	  "always",
+      "cooldown_when_use"
+	],
+	"Projectile_Speed": 400,
+	"AbilityType": "passive",
+	"Categories_Main": "psionic",
+	"Categories_Sub": "fire",
+	"Desc": "2.5초에 한 번씩 화염참을 내뿜어 닿는 유닛에게 2의 피해를 줍니다. (Damage 데미지, Cooldown 쿨타임, Range 사거리, Area 투사체 인식 범위, Filter 적용 대상, Tag 스킬 태그, Projectile_Speed투사체 속도)",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "102": {
+	"Id": 102,
+	"AbilityName": "FlameThrower",
+	"StringName": "화염방사기",
+	"Race": "survivor",
+	"Damage": 1,
+	"Cooldown": 0.1,
+	"Range": 150,
+	"Area": 50,
+	"Filter": "enemy,zombie",
+	"Tag": [
+	  "auto",
+	  "always",
+      "cooldown_when_use"
+	],
+	"Projectile_Speed": 400,
+	"AbilityType": "passive",
+	"Categories_Main": "physical",
+	"Categories_Sub": "fire",
+	"Desc": "0.1초에 한 번씩 화염참을 내뿜어 닿는 유닛에게 2의 피해를 줍니다. (Damage 데미지, Cooldown 쿨타임, Range 사거리, Area 투사체 인식 범위, Filter 적용 대상, Tag 스킬 태그, Projectile_Speed투사체 속도)",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "103": {
+	"Id": 103,
+	"AbilityName": "SpeedGenji",
+	"StringName": "스피드 겐지",
+	"Race": "survivor",
+	"Duration": 0.4,
+	"Range": 120,
+	"Upgrade_Target": "Ability",
+	"Target_Ability": 100,
+	"Filter": "enemy,zombie",
+	"Tag": [
+      "skill_customize"
+	],
+	"AbilityType": "passive",
+	"Categories_Main": "adjust",
+	"Categories_Sub": "addon",
+	"Desc": "특정 스킬 강화형 패시브. (특정 스킬의 사용이 완료될 시 강화되는 모듈형 패시브입니다. Ability 카테고리의 100번, Dash 사용 완료 작동합니다. dash 완료시 120범위 내 주변 적들을 0.4초간 짧게 넉백시킵니다.",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "104": {
+	"Id": 104,
+	"StringName": "은신술",
+	"AbilityName": "Stealth",
+	"Race": "survivor",
+	"Duration_Cast": 0.5,
+	"Cooldown": 5,
+	"Tag": [
+	  "perform_action",
+	  "action_channel",
+	  "cast_predelay",
+	  "cooldown_when_end",
+      "action_related_start"
+	],
+    "ActionOrder": [
+	  "1_use_ability_105"
+    ],
+	"AbilityType": "active",
+	"Categories_Main": "physical",
+	"Categories_Sub": "mobility",
+	"Desc": "action_channel 다른 행동시 해제됨, cast_predelay 시전시간 존재하며 시전시간 progress bar를 보여줌",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "105": {
+	"Id": 105,
+	"StringName": "광역 혼란",
+	"AbilityName": "광역 혼란",
+	"Race": "survivor",
+	"Range": "700",
+	"Tag": [
+	  "free_action",
+	  "action_related_end",
+      "affect_buff"
+	],
+    "AffectBuff": "10",
+	"AbilityType": "active",
+	"Categories_Main": "physical",
+	"Categories_Sub": "mobility",
+	"Desc": "action_related 이 기술은 특정 기술 사용시 자동으로 나감",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "109": {
+	"Id": 109,
+	"StringName": "밤의 검무",
+	"AbilityName": "NightBladeDance",
+	"Race": "survivor",
+	"Cooldown": 2.0,
+	"Range-px": 180,
+	"Tag": [
+	  "action_toggle",
+	  "cooldown_when_end"
+	],
+	"AbilityType": "active",
+	"Categories_Main": "physical",
+	"Categories_Sub": "attack",
+	"Desc": "토글 시 전방 적에게 0.25초마다 2D 공격 영역을 생성하여 0.1초 주기로 타격합니다. 토글 해제 시 쿨타임이 시작됩니다.",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "110": {
+	"Id": 110,
+	"StringName": "기본 공격",
+	"AbilityName": "BasicAttack",
+	"Race": "survivor",
+	"Cooldown": 0.6,
+	"Range-px": 180,
+	"Tag": [
+	  "perform_action"
+	],
+	"AbilityType": "active",
+	"Categories_Main": "physical",
+	"Categories_Sub": "attack",
+	"Desc": "기본 무기 공격 어빌리티입니다.",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "1000": {
+	"Id": 1000,
+	"AbilityName": "Frenzy of Day",
+	"StringName": "낮의 광란",
+	"Race": "none",
+	"Attribute_Modifier": [
+	  {
+		"Attribute": "speed-px",
+		"Value": 300.0,
+		"Type": "Flat"
+	  },
+	  {
+		"Attribute": "sight-px",
+		"Value": 500,
+		"Type": "Flat"
+	  },
+	  {
+		"Attribute": "tenacity",
+		"Value": 0.3,
+		"Type": "Percent"
+	  }
+	],
+	"AbilityType": "passive",
+	"Categories_Main": "dummy",
+	"Categories_Sub": "none",
+	"Desc": "낮의 광란입니다!",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "1001": {
+	"Id": 1001,
+	"AbilityName": "Invulnerable",
+	"StringName": "무적",
+	"Race": "none",
+	"Tag": [],
+	"AbilityType": "passive",
+	"Categories_Main": "dummy",
+	"Categories_Sub": "none",
+	"Desc": "피해를 받지 않는다구.!",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "1002": {
+	"Id": 1002,
+	"AbilityName": "LowerBrain",
+	"StringName": "하위 두뇌",
+	"Race": "none",
+	"Tag": [
+      "slot:"
+	],
+	"AbilityType": "passive",
+	"Categories_Main": "dummy",
+	"Categories_Sub": "none",
+	"Desc": "하위 두뇌 제어 패시브 슬롯. 직업.",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "1003": {
+	"Id": 1003,
+	"AbilityName": "UpperBrain",
+	"StringName": "상위 두뇌",
+	"Race": "none",
+	"Tag": [
+      "slot:"
+	],
+	"AbilityType": "passive",
+	"Categories_Main": "dummy",
+	"Categories_Sub": "none",
+	"Desc": "상위 두뇌 제어 패시브 슬롯. 본성.",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "1004": {
+	"Id": 1004,
+	"AbilityName": "PerceptionRange",
+	"StringName": "인지 - 거리",
+	"Race": "none",
+	"AbilityType": "passive",
+    "Range-px": 250.0,
+	"Categories_Main": "dummy",
+	"Categories_Sub": "none",
+	"Desc": "얼마나 멀리 있어야 하나?",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  },
+  "1005": {
+	"Id": 1005,
+	"AbilityName": "MemoryTime",
+	"StringName": "기억 - 시간",
+	"Race": "none",
+	"Duration": 2.0,
+	"AbilityType": "passive",
+	"Categories_Main": "dummy",
+	"Categories_Sub": "none",
+	"Desc": "얼마나 오래 벗어나있어야 하나?",
+	"ImgRes": "res://resource/graphics/card_image/sword-svgrepo-com.png"
+  }
+}

@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>괴물 데이터 고급 에디터</title>
+<style>
+  :root {
+    --bg-main: #141418;
+    --bg-sidebar: #1d1d24;
+    --bg-card: #252530;
+    --bg-subcard: #1b1b22;
+    --bg-input: #111115;
+    --accent: #8b5cf6;
+    --accent-hover: #7c3aed;
+    --accent-subtle: rgba(139, 92, 246, 0.15);
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --warning: #f59e0b;
+    --success: #10b981;
+    --success-hover: #059669;
+    --text: #f3f4f6;
+    --text-dim: #9ca3af;
+    --border: #374151;
+    --border-light: #4b5563;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg-main);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-size: 13px;
+  }
+
+  header {
+    background: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    z-index: 10;
+  }
+
+  .header-left, .header-actions { display: flex; gap: 8px; align-items: center; }
+  .logo { font-weight: 800; font-size: 15px; color: #c4b5fd; margin-right: 8px; }
+
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  button:hover { background: var(--accent-hover); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary { background: var(--bg-card); border: 1px solid var(--border); color: var(--text); }
+  button.secondary:hover { background: var(--border); }
+  button.danger { background: var(--danger); }
+  button.danger:hover { background: var(--danger-hover); }
+  button.success { background: var(--success); }
+  button.success:hover { background: var(--success-hover); }
+  button.sm { padding: 4px 8px; font-size: 11px; }
+
+  .layout { display: flex; flex: 1; overflow: hidden; }
+
+  aside {
+    width: 320px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .sidebar-controls {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .filter-row { display: flex; gap: 6px; }
+
+  .item-list { flex: 1; overflow-y: auto; list-style: none; }
+  .item-entry {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: grab;
+    transition: background 0.12s;
+    user-select: none;
+  }
+  .item-entry:active { cursor: grabbing; }
+  .item-entry:hover { background: rgba(255,255,255,0.03); }
+  .item-entry.active { background: var(--bg-card); border-left: 3px solid var(--accent); }
+  .item-entry.drag-over { border-top: 2px solid var(--accent); background: var(--accent-subtle); }
+  .item-title { font-weight: 600; font-size: 13px; margin-bottom: 2px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+  .badge { background: var(--accent-subtle); color: var(--accent); padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+  .badge.error { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+  .item-meta { font-size: 11px; color: var(--text-dim); display: flex; justify-content: space-between; }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-sidebar);
+    padding: 14px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .main-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .cards-column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .property-grid {
+    display: grid;
+    grid-template-columns: 180px 1fr 34px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .prop-label {
+    font-weight: 600;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .prop-label span { font-size: 10px; color: var(--accent); }
+
+  input, select, textarea {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    outline: none;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  input.invalid { border-color: var(--danger) !important; background: rgba(239, 68, 68, 0.08); }
+  textarea { min-height: 48px; resize: vertical; }
+
+  .checkbox-wrapper { display: flex; align-items: center; height: 100%; }
+  input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+
+  .sub-panel {
+    background: var(--bg-subcard);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ability-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ability-header { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+  .ability-params { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+  .param-group { display: flex; flex-direction: column; gap: 3px; }
+  .param-group label { font-size: 10px; color: var(--text-dim); }
+
+  /* 2D Canvas Visualizer */
+  .preview-card {
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+  }
+  #viewCanvas {
+    background: #0d0d11;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 260px;
+    height: 260px;
+  }
+  .legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+    width: 100%;
+    font-size: 11px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-color { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* Right Pane (JSON Viewer) */
+  #jsonViewerPane {
+    width: 340px;
+    background: var(--bg-sidebar);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    transition: margin-right 0.2s ease;
+  }
+  #jsonViewerPane.hidden { margin-right: -341px; }
+  .json-viewer-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+  }
+  .json-viewer-content {
+    flex: 1;
+    background: var(--bg-input);
+    color: #c4b5fd;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 12px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    border: none;
+    outline: none;
+    resize: none;
+  }
+
+  /* Modals */
+  .modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.65);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+  }
+  .modal-backdrop.active { display: flex; }
+  .modal-window {
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 460px;
+    max-width: 90vw;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .modal-title { font-size: 15px; font-weight: 700; }
+  .modal-body { display: flex; flex-direction: column; gap: 10px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+  .empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <button class="secondary sm" onclick="window.location.href='index.html'" title="메인 허브로 돌아가기" style="background:#1e293b; border-color:#475569;">🏠 허브로</button>
+    <div class="logo">ZOMBIE DB EDITOR</div>
+    <button class="secondary sm" id="btnUndo" onclick="undo()" title="실행 취소 (Ctrl+Z)">⟲ 취소</button>
+    <button class="secondary sm" id="btnRedo" onclick="redo()" title="다시 실행 (Ctrl+Y)">⟳ 다시</button>
+    <button class="secondary sm" onclick="openBatchModal()">⚙ 일괄 속성 관리</button>
+  </div>
+  <div class="header-actions">
+    <input type="file" id="fileInputJson" accept=".json" style="display:none" onchange="handleJsonUpload(event)">
+    <input type="file" id="fileInputCsv" accept=".csv" style="display:none" onchange="handleCsvUpload(event)">
+    <button class="secondary sm" onclick="openJsonFileViaDialog()">📂 JSON 불러오기</button>
+    <button class="secondary sm" onclick="document.getElementById('fileInputCsv').click()">CSV 불러오기</button>
+    <button class="secondary sm" onclick="exportCsv()">CSV 내보내기</button>
+    <button class="success sm" onclick="exportJson()">💾 JSON 저장</button>
+    <button class="secondary sm" onclick="toggleJsonViewer()">JSON 패널 ⬌</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="sidebar-controls">
+      <input type="text" id="searchFilter" placeholder="Type / VisualLabel 검색..." oninput="renderSidebar()">
+      <div class="filter-row">
+        <select id="brainFilter" onchange="renderSidebar()">
+          <option value="">모든 Brain</option>
+          <option value="Normal">Normal</option>
+          <option value="Smart">Smart</option>
+        </select>
+        <select id="sortOrder" onchange="renderSidebar()">
+          <option value="custom">사용자 지정 (드래그 가능)</option>
+          <option value="type_asc">Type 이름순</option>
+          <option value="health_desc">체력 높은순</option>
+          <option value="speed_desc">속도 빠른순</option>
+        </select>
+      </div>
+      <button class="secondary" style="width: 100%;" onclick="addMonster()">+ 새 괴물 추가</button>
+    </div>
+    <ul class="item-list" id="itemList"></ul>
+  </aside>
+
+  <main id="editorContainer">
+    <div class="empty-state">목록에서 편집할 괴물을 선택하세요.</div>
+  </main>
+
+  <div id="jsonViewerPane">
+    <div class="json-viewer-header">
+      <span>RAW JSON 미리보기</span>
+      <button class="secondary sm" onclick="copyJsonToClipboard()">복사</button>
+    </div>
+    <textarea class="json-viewer-content" id="jsonViewerText" readonly></textarea>
+  </div>
+</div>
+
+<!-- 일괄 속성 관리 모달 -->
+<div class="modal-backdrop" id="batchModal">
+  <div class="modal-window">
+    <div class="modal-title">괴물 데이터 일괄 속성 관리</div>
+    <div class="modal-body">
+      <div style="font-weight: 600; font-size: 12px; color: var(--text-dim);">1. 새 속성 전체 일괄 주입</div>
+      <div style="display: flex; gap: 6px;">
+        <input type="text" id="batchPropKey" placeholder="속성명 (예: Tenacity)">
+        <select id="batchPropType" style="width: 110px;">
+          <option value="number">숫자</option>
+          <option value="string">문자열</option>
+          <option value="boolean">불리언</option>
+        </select>
+        <input type="text" id="batchPropVal" placeholder="기본값 (예: 0.0)">
+      </div>
+      <button class="secondary sm" onclick="executeBatchAdd()">모든 괴물에 속성 추가</button>
+
+      <hr style="border: 0; border-top: 1px solid var(--border); margin: 6px 0;">
+
+      <div style="font-weight: 600; font-size: 12px; color: var(--danger);">2. 속성 전체 일괄 제거</div>
+      <div style="display: flex; gap: 6px;">
+        <input type="text" id="batchRemoveKey" placeholder="삭제할 속성명">
+        <button class="danger sm" onclick="executeBatchRemove()">일괄 삭제</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="secondary" onclick="closeBatchModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- System / Pause Menu Modal (menu.html) -->
+<div id="escMenuModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.65); z-index:999999; align-items:center; justify-content:center;">
+  <iframe src="menu.html" style="width:340px; height:240px; border:none; background:transparent;" allowtransparency="true"></iframe>
+</div>
+
+<script>
+const DEFAULT_ZOMBIE_DB = [
+  {
+    "Type": "Default",
+    "VisualLabel": "Z",
+    "ModelKey": "policeman",
+    "Brain": "Normal",
+    "MaxHealth": 2,
+    "Tenacity": 0.0,
+    "CollisionSize-px": 26,
+    "BaseSpeed-px": 120,
+    "CollisionRadius-px": 13,
+    "RotatingSpeed-sec": 0.5,
+    "FindDistance-px": 100,
+    "AttackDistance-px": 85,
+    "CanPerformAngle-deg": 40,
+    "Abilities": {
+      "LowerBrain": {},
+      "UpperBrain": {},
+      "PerceptionRange": {},
+      "MemoryTime": {}
+    },
+    "BasicWeapon": 101,
+    "WeaponList": {
+      "Sun": 101,
+      "Moon": 102,
+      "Star": 103
+    },
+    "Comment": ""
+  }
+];
+
+const ENUM_SCHEMAS = {
+  "Brain": ["Normal", "Smart", "Custom"],
+  "ModelKey": ["policeman", "Custom"]
+};
+
+let zombieData = [];
+let currentIndex = 0;
+let historyStack = [];
+let historyIndex = -1;
+let isRadiusLinked = true;
+let draggedEntryIdx = null;
+
+function parseRobustJson(text) {
+  if (!text || typeof text !== 'string') throw new Error('입력 텍스트가 비어있습니다.');
+  let raw = text.replace(/^\uFEFF/, '').trim();
+  try {
+    return JSON.parse(raw);
+  } catch (initialErr) {
+    let cleaned = raw.replace(/("(?:\\.|[^"\\])*")|(\/\/.*$)|(\/\*[\s\S]*?\*\/)/gm, (match, str) => {
+      if (str) return str;
+      return '';
+    });
+    let prev = '';
+    while (cleaned !== prev) {
+      prev = cleaned;
+      cleaned = cleaned.replace(/,\s*([\}\]])/g, '$1');
+    }
+    try {
+      return JSON.parse(cleaned);
+    } catch (secondErr) {
+      throw new Error(`JSON 파싱 오류: ${initialErr.message}`);
+    }
+  }
+}
+
+function loadMonsterJsonText(text) {
+  let parsed = parseRobustJson(text);
+  if (!Array.isArray(parsed)) {
+    if (typeof parsed === 'object' && parsed !== null) {
+      parsed = Object.values(parsed);
+    } else {
+      parsed = [];
+    }
+  }
+  zombieData = parsed;
+  currentIndex = zombieData.length > 0 ? 0 : -1;
+  recordState(true);
+  renderSidebar();
+  renderEditor();
+  updateJsonViewer();
+}
+
+async function init() {
+  // Purge legacy cache
+  localStorage.removeItem('zombie_db_editor_data');
+  localStorage.removeItem('zombie_db_editor_data_v2');
+
+  zombieData = [];
+  currentIndex = -1;
+
+  // 1. Try loading path configured in EditorData/base_config.json
+  const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
+  if (typeof invokeFn === 'function') {
+    try {
+      const cfg = await invokeFn('get_base_config');
+      if (cfg && cfg.DBPath && cfg.DBPath.MonsterEdit) {
+        const filePath = cfg.DBPath.MonsterEdit;
+        const text = await invokeFn('read_file_text', { path: filePath });
+        if (text) {
+          loadMonsterJsonText(text);
+          console.log('Loaded Monster DB from base_config:', filePath);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Could not auto-load from base_config path:', err);
+    }
+  }
+
+  // 2. Default clean template
+  zombieData = JSON.parse(JSON.stringify(DEFAULT_ZOMBIE_DB));
+  currentIndex = 0;
+  recordState(true);
+  renderSidebar();
+  renderEditor();
+  updateJsonViewer();
+}
+
+/* History / Undo-Redo */
+function recordState(initial = false) {
+  const serialized = JSON.stringify(zombieData);
+  if (!initial) {
+    if (historyIndex < historyStack.length - 1) {
+      historyStack = historyStack.slice(0, historyIndex + 1);
+    }
+  }
+  historyStack.push(serialized);
+  if (historyStack.length > 40) historyStack.shift();
+  else historyIndex = historyStack.length - 1;
+
+  updateUndoRedoButtons();
+  updateJsonViewer();
+  draw2DPreview();
+}
+
+function undo() {
+  if (historyIndex > 0) {
+    historyIndex--;
+    zombieData = JSON.parse(historyStack[historyIndex]);
+    if (currentIndex >= zombieData.length) currentIndex = Math.max(0, zombieData.length - 1);
+    renderSidebar();
+    renderEditor();
+    updateUndoRedoButtons();
+    updateJsonViewer();
+  }
+}
+
+function redo() {
+  if (historyIndex < historyStack.length - 1) {
+    historyIndex++;
+    zombieData = JSON.parse(historyStack[historyIndex]);
+    if (currentIndex >= zombieData.length) currentIndex = Math.max(0, zombieData.length - 1);
+    renderSidebar();
+    renderEditor();
+    updateUndoRedoButtons();
+    updateJsonViewer();
+  }
+}
+
+function updateUndoRedoButtons() {
+  document.getElementById('btnUndo').disabled = historyIndex <= 0;
+  document.getElementById('btnRedo').disabled = historyIndex >= historyStack.length - 1;
+}
+
+function openEscMenu() {
+  const modal = document.getElementById('escMenuModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeEscMenu() {
+  const modal = document.getElementById('escMenuModal');
+  if (modal) modal.style.display = 'none';
+  window.focus();
+  if (document.body) document.body.focus();
+}
+
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'CLOSE_ESC_MENU') {
+    closeEscMenu();
+  }
+});
+
+window.addEventListener('keydown', (e) => {
+  // Ctrl + S: Save
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    exportJson();
+    return;
+  }
+
+  // Ctrl + Z / Y: Undo / Redo
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+    if (e.shiftKey) redo();
+    else undo();
+    e.preventDefault();
+    return;
+  } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+    redo();
+    e.preventDefault();
+    return;
+  }
+
+  // ESC: System Menu or Close Modal
+  if (e.key === 'Escape') {
+    const escModal = document.getElementById('escMenuModal');
+    if (escModal && escModal.style.display === 'flex') {
+      e.preventDefault();
+      closeEscMenu();
+      return;
+    }
+
+    const batchModal = document.getElementById('batchModal');
+    if (batchModal && batchModal.classList.contains('active')) {
+      e.preventDefault();
+      closeBatchModal();
+      return;
+    }
+
+    const activeElem = document.activeElement;
+    const activeTag = activeElem ? activeElem.tagName.toLowerCase() : '';
+    const isTyping = (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select');
+
+    if (!isTyping) {
+      e.preventDefault();
+      openEscMenu();
+    }
+  }
+});
+
+/* Validation */
+function checkTypeDuplicates() {
+  const counts = {};
+  zombieData.forEach(item => {
+    const t = String(item.Type || '').trim();
+    counts[t] = (counts[t] || 0) + 1;
+  });
+  return counts;
+}
+
+/* Sidebar & Drag and Drop */
+function renderSidebar() {
+  const listEl = document.getElementById('itemList');
+  const query = document.getElementById('searchFilter').value.toLowerCase().trim();
+  const brainFilter = document.getElementById('brainFilter').value;
+  const sortOrder = document.getElementById('sortOrder').value;
+  const typeCounts = checkTypeDuplicates();
+
+  listEl.innerHTML = '';
+
+  let entries = zombieData.map((item, idx) => ({ item, originalIndex: idx }));
+
+  entries = entries.filter(({ item }) => {
+    const type = String(item.Type || '').toLowerCase();
+    const label = String(item.VisualLabel || '').toLowerCase();
+    const model = String(item.ModelKey || '').toLowerCase();
+    const comment = String(item.Comment || '').toLowerCase();
+
+    const matchesQuery = !query || type.includes(query) || label.includes(query) || model.includes(query) || comment.includes(query);
+    const matchesBrain = !brainFilter || item.Brain === brainFilter;
+    return matchesQuery && matchesBrain;
+  });
+
+  if (sortOrder === 'type_asc') {
+    entries.sort((a, b) => (a.item.Type || '').localeCompare(b.item.Type || ''));
+  } else if (sortOrder === 'health_desc') {
+    entries.sort((a, b) => (b.item.MaxHealth || 0) - (a.item.MaxHealth || 0));
+  } else if (sortOrder === 'speed_desc') {
+    entries.sort((a, b) => (b.item['BaseSpeed-px'] || 0) - (a.item['BaseSpeed-px'] || 0));
+  }
+
+  const isCustomSort = sortOrder === 'custom';
+
+  entries.forEach(({ item, originalIndex }) => {
+    const type = item.Type || '(이름 없음)';
+    const label = item.VisualLabel || '?';
+    const isDup = typeCounts[type.trim()] > 1;
+
+    const li = document.createElement('li');
+    li.className = `item-entry ${originalIndex === currentIndex ? 'active' : ''}`;
+    li.draggable = isCustomSort;
+
+    if (isCustomSort) {
+      li.ondragstart = (e) => {
+        draggedEntryIdx = originalIndex;
+        e.dataTransfer.effectAllowed = 'move';
+      };
+      li.ondragover = (e) => {
+        e.preventDefault();
+        li.classList.add('drag-over');
+      };
+      li.ondragleave = () => li.classList.remove('drag-over');
+      li.ondrop = (e) => {
+        e.preventDefault();
+        li.classList.remove('drag-over');
+        if (draggedEntryIdx !== null && draggedEntryIdx !== originalIndex) {
+          const moved = zombieData.splice(draggedEntryIdx, 1)[0];
+          zombieData.splice(originalIndex, 0, moved);
+          currentIndex = originalIndex;
+          recordState();
+          renderSidebar();
+          renderEditor();
+        }
+      };
+    }
+
+    li.onclick = () => selectItem(originalIndex);
+    li.innerHTML = `
+      <div class="item-title">
+        <span>${type}</span>
+        <div>
+          ${isDup ? `<span class="badge error">중복 Type</span>` : ''}
+          <span class="badge">[${label}]</span>
+        </div>
+      </div>
+      <div class="item-meta">
+        <span>Brain: ${item.Brain || 'Normal'}</span>
+        <span>HP: ${item.MaxHealth ?? '-'} | Spd: ${item['BaseSpeed-px'] ?? '-'}</span>
+      </div>
+    `;
+    listEl.appendChild(li);
+  });
+}
+
+function selectItem(idx) {
+  currentIndex = idx;
+  renderSidebar();
+  renderEditor();
+  updateJsonViewer();
+}
+
+/* Editor Rendering */
+function renderEditor() {
+  const container = document.getElementById('editorContainer');
+  if (currentIndex < 0 || !zombieData[currentIndex]) {
+    container.innerHTML = `<div class="empty-state">편집할 괴물을 목록에서 선택하세요.</div>`;
+    return;
+  }
+
+  const item = zombieData[currentIndex];
+  const typeCounts = checkTypeDuplicates();
+  const isTypeDup = typeCounts[String(item.Type).trim()] > 1;
+
+  container.innerHTML = `
+    <div class="editor-header">
+      <div>
+        <h2 style="font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+          ${item.Type || 'Unknown'}
+          <span style="font-size: 12px; color: var(--accent);">[라벨: ${item.VisualLabel || '-'}]</span>
+          ${isTypeDup ? '<span class="badge error">Type 식별자 중복 경고</span>' : ''}
+        </h2>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="secondary sm" onclick="duplicateMonster(${currentIndex})">괴물 복제</button>
+        <button class="danger sm" onclick="deleteMonster(${currentIndex})">괴물 삭제</button>
+      </div>
+    </div>
+
+    <div class="main-content-grid">
+      <div class="cards-column">
+        <!-- 물리 및 스탯 -->
+        <div class="card">
+          <div class="card-title">
+            <span>기본 물리 및 인지 스탯</span>
+            <button class="secondary sm" onclick="toggleRadiusLink()">
+              ${isRadiusLinked ? '🔗 크기-반경 자동 연동 (1/2)' : '🔓 반경 독립 제어'}
+            </button>
+          </div>
+          <div id="generalProps"></div>
+          
+          <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border);">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-dim); margin-bottom: 8px;">새 스탯 / 속성 추가</div>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="newKeyName" placeholder="속성 키 (예: Defense)" style="flex:2;">
+              <select id="newKeyType" style="flex:1.2;">
+                <option value="number">Number (숫자)</option>
+                <option value="string">String (문자)</option>
+                <option value="boolean">Boolean (참/거짓)</option>
+              </select>
+              <button onclick="addNewProperty()" style="flex:1;">+ 추가</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 무기 연동 -->
+        <div class="card">
+          <div class="card-title">무기 슬롯 연동 (ID 참조)</div>
+          <div class="sub-panel">
+            <div class="property-grid">
+              <div class="prop-label">BasicWeapon (기본 ID)</div>
+              <div>
+                <input type="number" value="${item.BasicWeapon || 101}" onchange="updateField('BasicWeapon', parseInt(this.value) || 0)">
+              </div>
+              <div></div>
+            </div>
+            <hr style="border:0; border-top:1px solid var(--border); margin: 4px 0;">
+            <div style="font-weight: 600; font-size: 12px; color: var(--text-dim); margin-bottom: 4px;">시간대별 WeaponList</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+              <div>
+                <label style="font-size: 11px; color: #fbbf24; display:block; margin-bottom: 4px;">☀️ Sun (낮)</label>
+                <input type="number" value="${item.WeaponList?.Sun ?? 101}" onchange="updateWeaponList('Sun', parseInt(this.value) || 0)">
+              </div>
+              <div>
+                <label style="font-size: 11px; color: #818cf8; display:block; margin-bottom: 4px;">🌙 Moon (밤)</label>
+                <input type="number" value="${item.WeaponList?.Moon ?? 102}" onchange="updateWeaponList('Moon', parseInt(this.value) || 0)">
+              </div>
+              <div>
+                <label style="font-size: 11px; color: #38bdf8; display:block; margin-bottom: 4px;">✨ Star (새벽)</label>
+                <input type="number" value="${item.WeaponList?.Star ?? 103}" onchange="updateWeaponList('Star', parseInt(this.value) || 0)">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 계층형 능력치 트리 (Abilities) -->
+        <div class="card">
+          <div class="card-title">특수 및 기본 능력 트리 (Abilities)</div>
+          <div class="sub-panel" id="abilitiesContainer"></div>
+
+          <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <input type="text" id="newAbilityKey" placeholder="새 능력 이름 (예: Quicken, Colossus)" style="flex:2;">
+            <button class="secondary" onclick="addAbility()">+ 능력 추가</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2D 탑뷰 시각화 프리뷰 -->
+      <div class="preview-card">
+        <div style="font-weight: 700; font-size: 13px; align-self: flex-start;">2D 전투/물리 범위 미리보기</div>
+        <canvas id="viewCanvas" width="260" height="260"></canvas>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color" style="background: rgba(59, 130, 246, 0.4); border: 1px solid #3b82f6;"></div>
+            <span>탐색 (FindDist)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: rgba(239, 68, 68, 0.4); border: 1px solid #ef4444;"></div>
+            <span>공격각 (Attack)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #10b981;"></div>
+            <span>충돌체 (Radius)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #fff;"></div>
+            <span>정면 시선 (0°)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  renderGeneralProperties();
+  renderAbilities();
+  draw2DPreview();
+}
+
+function toggleRadiusLink() {
+  isRadiusLinked = !isRadiusLinked;
+  renderEditor();
+}
+
+function renderGeneralProperties() {
+  const container = document.getElementById('generalProps');
+  const item = zombieData[currentIndex];
+  const typeCounts = checkTypeDuplicates();
+
+  const ignoreKeys = ['Abilities', 'WeaponList', 'BasicWeapon'];
+
+  Object.keys(item).forEach(prop => {
+    if (ignoreKeys.includes(prop)) return;
+
+    const val = item[prop];
+    const row = document.createElement('div');
+    row.className = 'property-grid';
+
+    let inputMarkup = '';
+
+    if (prop === 'Type') {
+      const isDup = typeCounts[String(val).trim()] > 1;
+      inputMarkup = `<input type="text" class="${isDup ? 'invalid' : ''}" value="${val}" onchange="updateTypeField(this.value)">`;
+    } else if (ENUM_SCHEMAS[prop]) {
+      const opts = ENUM_SCHEMAS[prop];
+      let optionsHtml = opts.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('');
+      if (!opts.includes(val) && val) optionsHtml += `<option value="${val}" selected>${val}</option>`;
+      inputMarkup = `<select onchange="updateField('${prop}', this.value)">${optionsHtml}</select>`;
+    } else if (typeof val === 'boolean') {
+      inputMarkup = `
+        <div class="checkbox-wrapper">
+          <input type="checkbox" ${val ? 'checked' : ''} onchange="updateField('${prop}', this.checked)">
+        </div>
+      `;
+    } else if (typeof val === 'number') {
+      inputMarkup = `<input type="number" step="any" value="${val}" onchange="updateNumberField('${prop}', this.value)">`;
+    } else {
+      if (prop === 'Comment') {
+        inputMarkup = `<textarea onchange="updateField('${prop}', this.value)">${val || ''}</textarea>`;
+      } else {
+        inputMarkup = `<input type="text" value="${val || ''}" onchange="updateField('${prop}', this.value)">`;
+      }
+    }
+
+    const typeDesc = typeof val;
+    row.innerHTML = `
+      <div class="prop-label" title="${prop}">${prop} <span>[${typeDesc}]</span></div>
+      <div>${inputMarkup}</div>
+      <button class="danger" style="padding: 4px;" onclick="removeProperty('${prop}')" title="속성 삭제">✕</button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function renderAbilities() {
+  const container = document.getElementById('abilitiesContainer');
+  const item = zombieData[currentIndex];
+  if (!item.Abilities) item.Abilities = {};
+
+  container.innerHTML = '';
+
+  Object.keys(item.Abilities).forEach(abKey => {
+    const abVal = item.Abilities[abKey];
+    const abBox = document.createElement('div');
+    abBox.className = 'ability-item';
+
+    const hasParams = typeof abVal === 'object' && abVal !== null && Object.keys(abVal).length > 0;
+
+    let paramsHtml = '';
+    if (typeof abVal === 'object' && abVal !== null) {
+      paramsHtml = Object.keys(abVal).map(pKey => `
+        <div class="param-group">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label>${pKey}</label>
+            <span style="cursor:pointer; color:var(--danger); font-size:10px;" onclick="removeAbilityParam('${abKey}', '${pKey}')">✕</span>
+          </div>
+          <input type="number" step="any" value="${abVal[pKey]}" onchange="updateAbilityParam('${abKey}', '${pKey}', this.value)">
+        </div>
+      `).join('');
+    }
+
+    abBox.innerHTML = `
+      <div class="ability-header">
+        <span style="color: #c4b5fd;">✦ ${abKey}</span>
+        <div style="display: flex; gap: 4px;">
+          <button class="secondary sm" onclick="addAbilityParam('${abKey}')">+ 파라미터</button>
+          <button class="danger sm" onclick="removeAbility('${abKey}')">✕ 삭제</button>
+        </div>
+      </div>
+      <div class="ability-params">${paramsHtml || '<span style="color:var(--text-dim); font-size:11px;">빈 능력 객체입니다.</span>'}</div>
+    `;
+    container.appendChild(abBox);
+  });
+}
+
+/* 2D Canvas Drawing */
+function draw2DPreview() {
+  const canvas = document.getElementById('viewCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const item = zombieData[currentIndex];
+  if (!item) return;
+
+  const w = canvas.width;
+  const h = canvas.height;
+  const cx = w / 2;
+  const cy = h / 2;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // 그리드 배경
+  ctx.strokeStyle = '#22222c';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= w; x += 26) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = 0; y <= h; y += 26) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  const findDist = item['FindDistance-px'] || 0;
+  const attackDist = item['AttackDistance-px'] || 0;
+  const colRadius = item['CollisionRadius-px'] || (item['CollisionSize-px'] ? item['CollisionSize-px'] / 2 : 0);
+  const angleDeg = item['CanPerformAngle-deg'] || 0;
+
+  const maxVal = Math.max(findDist, attackDist, colRadius * 2, 80);
+  const scale = (w * 0.42) / maxVal;
+
+  // 1. Find Distance 원
+  if (findDist > 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, findDist * scale, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.12)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 2. Attack Distance & Angle 부채꼴 (상단을 0도 정면으로 설정)
+  if (attackDist > 0) {
+    const halfAngleRad = ((angleDeg / 2) * Math.PI) / 180;
+    const startAngle = -Math.PI / 2 - halfAngleRad;
+    const endAngle = -Math.PI / 2 + halfAngleRad;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, attackDist * scale, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // 3. 정면 시선 축
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx, cy - (Math.max(attackDist, findDist, 40) * scale));
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 2]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 4. Collision Radius 충돌체 원
+  if (colRadius > 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(colRadius * scale, 3), 0, Math.PI * 2);
+    ctx.fillStyle = '#10b981';
+    ctx.fill();
+    ctx.strokeStyle = '#059669';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // 중심점
+  ctx.beginPath();
+  ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+}
+
+/* Value Updaters */
+function updateTypeField(val) {
+  zombieData[currentIndex].Type = val;
+  recordState();
+  renderSidebar();
+  renderEditor();
+}
+
+function updateField(prop, value) {
+  zombieData[currentIndex][prop] = value;
+  recordState();
+  if (['Type', 'VisualLabel', 'Brain', 'MaxHealth', 'BaseSpeed-px'].includes(prop)) {
+    renderSidebar();
+  }
+}
+
+function updateNumberField(prop, rawVal) {
+  const val = parseFloat(rawVal) || 0;
+  zombieData[currentIndex][prop] = val;
+
+  if (isRadiusLinked && prop === 'CollisionSize-px') {
+    zombieData[currentIndex]['CollisionRadius-px'] = Math.round((val / 2) * 10) / 10;
+    renderEditor();
+  } else if (isRadiusLinked && prop === 'CollisionRadius-px') {
+    zombieData[currentIndex]['CollisionSize-px'] = Math.round((val * 2) * 10) / 10;
+    renderEditor();
+  }
+
+  recordState();
+  if (['MaxHealth', 'BaseSpeed-px'].includes(prop)) {
+    renderSidebar();
+  }
+}
+
+function updateWeaponList(slot, val) {
+  if (!zombieData[currentIndex].WeaponList) zombieData[currentIndex].WeaponList = {};
+  zombieData[currentIndex].WeaponList[slot] = val;
+  recordState();
+}
+
+function addAbility() {
+  const key = document.getElementById('newAbilityKey').value.trim();
+  if (!key) return alert('능력명을 입력하세요.');
+  if (zombieData[currentIndex].Abilities[key]) return alert('이미 존재하는 능력입니다.');
+
+  zombieData[currentIndex].Abilities[key] = {};
+  recordState();
+  renderEditor();
+}
+
+function removeAbility(key) {
+  if (confirm(`'${key}' 능력을 제거하시겠습니까?`)) {
+    delete zombieData[currentIndex].Abilities[key];
+    recordState();
+    renderEditor();
+  }
+}
+
+function addAbilityParam(abKey) {
+  const paramKey = prompt('추가할 파라미터 이름을 입력하세요 (예: Duration, Power, Health):');
+  if (!paramKey) return;
+  const paramVal = parseFloat(prompt('초기 수치값을 입력하세요:', '1.0')) || 0;
+
+  if (!zombieData[currentIndex].Abilities[abKey]) zombieData[currentIndex].Abilities[abKey] = {};
+  zombieData[currentIndex].Abilities[abKey][paramKey] = paramVal;
+  recordState();
+  renderEditor();
+}
+
+function removeAbilityParam(abKey, paramKey) {
+  delete zombieData[currentIndex].Abilities[abKey][paramKey];
+  recordState();
+  renderEditor();
+}
+
+function updateAbilityParam(abKey, paramKey, valRaw) {
+  const val = parseFloat(valRaw) || 0;
+  zombieData[currentIndex].Abilities[abKey][paramKey] = val;
+  recordState();
+}
+
+function addNewProperty() {
+  const keyInput = document.getElementById('newKeyName');
+  const typeSelect = document.getElementById('newKeyType');
+  const key = keyInput.value.trim();
+
+  if (!key) return alert('속성명을 입력하세요.');
+  if (zombieData[currentIndex].hasOwnProperty(key)) return alert('이미 존재하는 속성입니다.');
+
+  let val = 0;
+  if (typeSelect.value === 'string') val = "";
+  if (typeSelect.value === 'boolean') val = false;
+
+  zombieData[currentIndex][key] = val;
+  recordState();
+  renderEditor();
+}
+
+function removeProperty(prop) {
+  if (confirm(`'${prop}' 속성을 삭제하시겠습니까?`)) {
+    delete zombieData[currentIndex][prop];
+    recordState();
+    renderEditor();
+  }
+}
+
+/* Monster Create / Duplicate / Delete */
+function addMonster() {
+  const newType = prompt('새 괴물의 Type을 입력하세요:', 'NewZombie');
+  if (!newType) return;
+
+  const newMonster = {
+    "Type": newType,
+    "VisualLabel": newType.charAt(0).toUpperCase(),
+    "ModelKey": "policeman",
+    "Brain": "Normal",
+    "MaxHealth": 2,
+    "Tenacity": 0.0,
+    "CollisionSize-px": 24,
+    "BaseSpeed-px": 120,
+    "CollisionRadius-px": 12,
+    "RotatingSpeed-sec": 0.5,
+    "FindDistance-px": 120,
+    "AttackDistance-px": 80,
+    "CanPerformAngle-deg": 45,
+    "Abilities": {
+      "LowerBrain": {},
+      "UpperBrain": {},
+      "PerceptionRange": {},
+      "MemoryTime": {}
+    },
+    "BasicWeapon": 101,
+    "WeaponList": { "Sun": 101, "Moon": 102, "Star": 103 },
+    "Comment": ""
+  };
+
+  zombieData.push(newMonster);
+  currentIndex = zombieData.length - 1;
+  recordState();
+  renderSidebar();
+  renderEditor();
+}
+
+function duplicateMonster(idx) {
+  const copy = JSON.parse(JSON.stringify(zombieData[idx]));
+  copy.Type = `${copy.Type}_Copy`;
+  copy.VisualLabel = copy.VisualLabel ? `${copy.VisualLabel}+` : 'C';
+
+  zombieData.splice(idx + 1, 0, copy);
+  currentIndex = idx + 1;
+  recordState();
+  renderSidebar();
+  renderEditor();
+}
+
+function deleteMonster(idx) {
+  if (confirm(`[${zombieData[idx].Type}] 괴물을 완전히 삭제하시겠습니까?`)) {
+    zombieData.splice(idx, 1);
+    currentIndex = Math.max(0, currentIndex - 1);
+    recordState();
+    renderSidebar();
+    renderEditor();
+  }
+}
+
+/* Batch Operations */
+function openBatchModal() { document.getElementById('batchModal').classList.add('active'); }
+function closeBatchModal() { document.getElementById('batchModal').classList.remove('active'); }
+
+function executeBatchAdd() {
+  const key = document.getElementById('batchPropKey').value.trim();
+  const type = document.getElementById('batchPropType').value;
+  const valRaw = document.getElementById('batchPropVal').value.trim();
+
+  if (!key) return alert('속성명을 입력하세요.');
+
+  let val = valRaw;
+  if (type === 'number') val = parseFloat(valRaw) || 0;
+  if (type === 'boolean') val = valRaw === 'true' || valRaw === '1';
+
+  zombieData.forEach(item => {
+    if (!item.hasOwnProperty(key)) {
+      item[key] = val;
+    }
+  });
+
+  recordState();
+  renderEditor();
+  closeBatchModal();
+  alert(`전체 괴물에 '${key}' 속성이 주입되었습니다.`);
+}
+
+function executeBatchRemove() {
+  const key = document.getElementById('batchRemoveKey').value.trim();
+  if (!key) return alert('삭제할 속성명을 입력하세요.');
+
+  if (confirm(`모든 괴물에서 '${key}' 속성을 완전히 삭제하시겠습니까?`)) {
+    zombieData.forEach(item => {
+      delete item[key];
+    });
+    recordState();
+    renderEditor();
+    closeBatchModal();
+    alert(`전체 괴물에서 '${key}' 속성이 삭제되었습니다.`);
+  }
+}
+
+/* JSON Viewer Pane */
+function toggleJsonViewer() {
+  document.getElementById('jsonViewerPane').classList.toggle('hidden');
+}
+
+function updateJsonViewer() {
+  const viewer = document.getElementById('jsonViewerText');
+  if (!viewer) return;
+  if (currentIndex >= 0 && zombieData[currentIndex]) {
+    viewer.value = JSON.stringify(zombieData[currentIndex], null, 2);
+  } else {
+    viewer.value = JSON.stringify(zombieData, null, 2);
+  }
+}
+
+function copyJsonToClipboard() {
+  const viewer = document.getElementById('jsonViewerText');
+  navigator.clipboard.writeText(viewer.value).then(() => {
+    alert('클립보드에 복사되었습니다.');
+  });
+}
+
+/* Import / Export */
+async function openJsonFileViaDialog() {
+  const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
+  if (typeof invokeFn === 'function') {
+    try {
+      const filePath = await invokeFn('open_file_dialog', { filterExt: 'json' });
+      if (filePath) {
+        const text = await invokeFn('read_file_text', { path: filePath });
+        loadMonsterJsonText(text);
+        await invokeFn('update_db_path', { editorKey: 'MonsterEdit', path: filePath });
+        console.log(`[괴물 DB 로드 완료] ${filePath}`);
+      }
+      return;
+    } catch (e) {
+      console.warn('Native open dialog error:', e);
+    }
+  }
+  document.getElementById('fileInputJson').click();
+}
+
+function handleJsonUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      loadMonsterJsonText(evt.target.result);
+    } catch (err) {
+      alert('유효한 JSON 파일이 아닙니다: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* Robust File Downloader & Backend Auto-Save */
+async function saveFileDirectly(filename, content, mimeType) {
+  // 1. Native Tauri Save File Dialog (Opens Windows Explorer Save Dialog)
+  const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke || window.__TAURI_INVOKE__;
+  if (typeof invokeFn === 'function') {
+    try {
+      const savedPath = await invokeFn('save_file_dialog', {
+        defaultName: filename,
+        content: content
+      });
+      if (savedPath) {
+        if (filename.endsWith('.json')) {
+          await invokeFn('update_db_path', { editorKey: 'MonsterEdit', path: savedPath });
+        }
+        alert(`✅ [파일 저장 완료]\n${savedPath}`);
+      }
+      return;
+    } catch (err) {
+      console.warn('Tauri native dialog invoke error:', err);
+    }
+  }
+
+  // 2. C# Backend direct save to GameData folder
+  let backendSaved = false;
+  let backendPath = '';
+  try {
+    const res = await fetch('http://127.0.0.1:5005/api/files/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileName: filename, content: content })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      backendSaved = true;
+      backendPath = data.path || '';
+    }
+  } catch (e) {
+    // Standalone / Offline mode fallback
+  }
+
+  // 3. Webview / Browser download trigger
+  try {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      if (document.body.contains(a)) document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 2000);
+  } catch (err) {
+    console.warn('Browser download trigger:', err);
+  }
+
+  if (backendSaved) {
+    alert(`✅ [저장 완료]\n- GameData/${filename} 경로에 안전하게 저장되었습니다.\n(${backendPath})`);
+  } else {
+    alert(`💾 [저장 요청 완료] ${filename} 파일 저장이 시작되었습니다.`);
+  }
+}
+
+function exportJson() {
+  const jsonStr = JSON.stringify(zombieData, null, 2);
+  saveFileDirectly('zombie_db.json', jsonStr, 'application/json');
+}
+
+/* CSV Handling */
+function exportCsv() {
+  if (zombieData.length === 0) return alert('내보낼 데이터가 없습니다.');
+
+  const headersSet = new Set(['Type', 'VisualLabel', 'ModelKey', 'Brain', 'MaxHealth', 'BaseSpeed-px', 'CollisionSize-px', 'CollisionRadius-px']);
+  zombieData.forEach(item => {
+    Object.keys(item).forEach(k => headersSet.add(k));
+  });
+  const headers = Array.from(headersSet);
+
+  let csvContent = headers.join(',') + '\n';
+
+  zombieData.forEach(item => {
+    const row = headers.map(h => {
+      let val = item[h];
+      if (val === undefined || val === null) val = '';
+      if (typeof val === 'object') val = JSON.stringify(val);
+      val = String(val).replace(/"/g, '""');
+      return `"${val}"`;
+    });
+    csvContent += row.join(',') + '\n';
+  });
+
+  const fullCsv = "\uFEFF" + csvContent;
+  saveFileDirectly('zombie_db.csv', fullCsv, 'text/csv;charset=utf-8;');
+}
+
+function handleCsvUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const text = evt.target.result;
+      const rows = parseCsvText(text);
+      if (rows.length < 2) return alert('CSV 데이터가 유효하지 않습니다.');
+
+      const headers = rows[0];
+      const newDb = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0 || (row.length === 1 && !row[0])) continue;
+        const obj = {};
+        headers.forEach((h, idx) => {
+          let val = row[idx] !== undefined ? row[idx] : '';
+          if (val === 'true') val = true;
+          else if (val === 'false') val = false;
+          else if (!isNaN(val) && val.trim() !== '') val = Number(val);
+          else if ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']'))) {
+            try { val = JSON.parse(val); } catch(e) {}
+          }
+          obj[h] = val;
+        });
+        newDb.push(obj);
+      }
+
+      zombieData = newDb;
+      currentIndex = zombieData.length > 0 ? 0 : -1;
+      recordState();
+      renderSidebar();
+      renderEditor();
+    } catch (err) {
+      alert('CSV 파싱 중 오류가 발생했습니다.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function parseCsvText(text) {
+  const lines = [];
+  let row = [];
+  let inQuotes = false;
+  let current = '';
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      row.push(current);
+      current = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') i++;
+      row.push(current);
+      lines.push(row);
+      row = [];
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  if (current || row.length > 0) {
+    row.push(current);
+    lines.push(row);
+  }
+  return lines;
+}
+
+init();
+</script>
+</body>
+</html>

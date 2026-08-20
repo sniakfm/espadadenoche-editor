@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
+  "identifier": "default",
+  "description": "Default capability for Espada de noche editor",
+  "windows": ["main"],
+  "permissions": [
+    "core:default"
+  ]
+}
