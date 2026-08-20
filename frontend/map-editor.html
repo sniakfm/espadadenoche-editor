@@ -333,13 +333,16 @@
   <div class="top-bar">
     <button class="btn-hub" onclick="location.href='index.html'">🏠 허브로</button>
     <div class="brand-title">🗺️ 지도 편집기</div>
+    <span id="currentMapFileName" style="font-size: 11px; color: #38bdf8; background: #1e293b; padding: 3px 8px; border-radius: 4px; border: 1px solid #334155;">새 맵</span>
+    <button class="btn-gray" onclick="newMap()" title="현재 맵 할당을 해제하고 새 맵 시작">✨ 새 맵</button>
+    <button class="btn-gray" onclick="undo()" title="마지막 행동 취소 (최대 5회)">⤺ 실행 취소 (Ctrl+Z)</button>
     <label>가로:</label>
     <input type="number" id="mapWidth" value="24" min="1" max="256">
     <label>세로:</label>
     <input type="number" id="mapHeight" value="24" min="1" max="256">
-    <button onclick="resizeMap()">맵 리셋</button>
+    <button onclick="resizeMapWithUndo()">맵 리셋</button>
     <button class="btn-gray btn-icon" onclick="openMetaModal()" title="메타데이터 설정">🌐 메타</button>
-    <button class="btn-green" onclick="saveMapFile()">💾 맵 저장</button>
+    <button class="btn-green" onclick="saveMapFile()">💾 맵 저장 (Ctrl+S)</button>
     <button class="btn-blue" onclick="openMapFile()">📂 맵 열기</button>
     <button class="btn-gray" onclick="exportJSON()">JSON 추출</button>
     <button class="btn-gray" onclick="copyJSON()">복사</button>
@@ -367,7 +370,7 @@
       <!-- 타일 정보 저장/불러오기 -->
       <div class="palette-io">
         <button class="btn-gray" onclick="exportPalette()">타일 저장</button>
-        <button class="btn-gray" onclick="document.getElementById('paletteFileInput').click()">타일 로드</button>
+        <button class="btn-gray" onclick="openPaletteFile()">타일 로드</button>
         <input type="file" id="paletteFileInput" accept=".json" style="display:none" onchange="importPalette(event)">
       </div>
     </div>
@@ -416,6 +419,48 @@
     let height = 24;
     let mapData = [];
 
+    // 실행 취소 (Undo) 히스토리 스택 (최대 5회)
+    const undoStack = [];
+    const MAX_UNDO = 5;
+
+    function saveUndoState() {
+      const snapshot = {
+        mapData: JSON.parse(JSON.stringify(mapData)),
+        width: width,
+        height: height,
+        mapMetadata: JSON.parse(JSON.stringify(mapMetadata)),
+        tilePalette: JSON.parse(JSON.stringify(tilePalette)),
+        currentTileSymbol: currentTile ? currentTile.symbol : '.'
+      };
+      undoStack.push(snapshot);
+      if (undoStack.length > MAX_UNDO) {
+        undoStack.shift();
+      }
+    }
+
+    function undo() {
+      if (undoStack.length === 0) {
+        return;
+      }
+      const prevState = undoStack.pop();
+      mapData = prevState.mapData;
+      width = prevState.width;
+      height = prevState.height;
+      mapMetadata = prevState.mapMetadata;
+
+      // Restore tile palette and selected tile
+      if (prevState.tilePalette) {
+        tilePalette = prevState.tilePalette;
+        currentTile = tilePalette.find(t => t.symbol === prevState.currentTileSymbol) || tilePalette[0];
+        renderPalette();
+      }
+
+      document.getElementById('mapWidth').value = width;
+      document.getElementById('mapHeight').value = height;
+      renderGrid();
+      exportJSON();
+    }
+
     // 메타데이터 상태
     let mapMetadata = {
       "map-name": "",
@@ -457,6 +502,13 @@
     });
 
     window.addEventListener('keydown', (e) => {
+      // Ctrl + Z: Undo
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+        return;
+      }
+
       // Ctrl + S: Save
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
@@ -600,6 +652,8 @@
         return;
       }
 
+      saveUndoState();
+
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           if (mapData[y][x] === symbol) {
@@ -715,7 +769,7 @@
       }
     }
 
-    async function importPalette(event) {
+    async function openPaletteFile() {
       const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
 
       if (typeof invokeFn === 'function') {
@@ -728,13 +782,17 @@
             await invokeFn('update_db_path', { editorKey: 'MapTileEdit', editor_key: 'MapTileEdit', path: filePath });
             console.log(`[타일 팔레트 로드 완료] ${filePath}`);
           }
-          return;
         } catch (err) {
           alert(`타일 팔레트 로드 실패: ${err.message || err}`);
-          return;
         }
+        return;
       }
 
+      // Browser fallback
+      document.getElementById('paletteFileInput')?.click();
+    }
+
+    function importPalette(event) {
       const file = event?.target?.files?.[0];
       if (!file) return;
 
@@ -750,9 +808,17 @@
       if (event?.target) event.target.value = '';
     }
 
+    function resizeMapWithUndo() {
+      if (confirm('현재 작업 중인 맵 크기를 리셋하시겠습니까? (실행 취소 스택도 초기화됩니다.)')) {
+        resizeMap();
+      }
+    }
+
     function resizeMap() {
       width = parseInt(document.getElementById('mapWidth').value, 10);
       height = parseInt(document.getElementById('mapHeight').value, 10);
+
+      undoStack.length = 0; // Clear undo stack on map reset/resize
 
       mapData = [];
       for (let y = 0; y < height; y++) {
@@ -763,6 +829,7 @@
         mapData.push(row);
       }
       renderGrid();
+      exportJSON();
     }
 
     function renderGrid() {
@@ -781,6 +848,7 @@
 
           cell.addEventListener('mousedown', (e) => {
             e.preventDefault();
+            saveUndoState(); // Save state before painting starts
             if (e.button === 2) {
               paintCell(x, y, cell, '.');
             } else if (e.button === 0) {
@@ -819,6 +887,40 @@
     }
 
     let currentMapFilePath = null;
+
+    function updateMapFileLabel() {
+      const label = document.getElementById('currentMapFileName');
+      if (label) {
+        label.textContent = currentMapFilePath ? getBaseName(currentMapFilePath) : '새 맵 (할당 없음)';
+      }
+    }
+
+    function getBaseName(pathStr) {
+      if (!pathStr) return 'map_data.json';
+      return pathStr.split(/[\\/]/).pop();
+    }
+
+    async function newMap() {
+      if (confirm('현재 작업 중인 맵 할당을 해제하고 새 맵을 생성하시겠습니까?')) {
+        undoStack.length = 0; // Clear undo stack
+        currentMapFilePath = null;
+        updateMapFileLabel();
+        mapMetadata = {
+          "map-name": "",
+          "map-ingame": "",
+          "map-level": ""
+        };
+        document.getElementById('jsonOutput').value = '';
+        resizeMap();
+        
+        const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
+        if (typeof invokeFn === 'function') {
+          try {
+            await invokeFn('update_db_path', { editorKey: 'MapEdit', path: null });
+          } catch(e) {}
+        }
+      }
+    }
 
     function parseRobustJson(text) {
       if (!text || typeof text !== 'string') throw new Error('입력 텍스트가 비어있습니다.');
@@ -860,6 +962,8 @@
       if (!parsed.map_data || !Array.isArray(parsed.map_data)) {
         throw new Error('올바른 map_data 배열이 포함된 JSON이 아닙니다.');
       }
+
+      undoStack.length = 0; // Clear undo stack on map load so Ctrl+Z doesn't wipe newly loaded map
 
       mapMetadata["map-name"] = parsed["map-name"] || "";
       mapMetadata["map-ingame"] = parsed["map-ingame"] || "";
@@ -916,6 +1020,7 @@
             const text = await invokeFn('read_file_text', { path: filePath });
             loadMapJsonText(text);
             currentMapFilePath = filePath;
+            updateMapFileLabel();
             await invokeFn('update_db_path', { editorKey: 'MapEdit', path: filePath });
             console.log(`[맵 DB 로드 완료] ${filePath}`);
           }
@@ -944,30 +1049,17 @@
       const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
       if (typeof invokeFn === 'function') {
         try {
-          // 1. If we have a remembered path or last saved path, auto-save to that path!
-          let targetPath = currentMapFilePath;
-          if (!targetPath) {
-            const cfg = await invokeFn('get_base_config');
-            if (cfg && cfg.DBPath && cfg.DBPath.MapEdit) {
-              targetPath = cfg.DBPath.MapEdit;
-            }
-          }
+          // Always prompt via Save File Dialog (File Manager)
+          let defaultName = (mapMetadata["map-name"] || (currentMapFilePath ? getBaseName(currentMapFilePath) : "map_data"));
+          if (!defaultName.endsWith('.json')) defaultName += '.json';
 
-          if (targetPath) {
-            await invokeFn('write_file_text', { path: targetPath, content: jsonStr });
-            await invokeFn('update_db_path', { editorKey: 'MapEdit', path: targetPath });
-            alert(`🎉 [맵 파일 자동 저장 완료]\n${targetPath}`);
-            return;
-          }
-
-          // 2. If null or empty, open Save File Dialog
-          const defaultName = (mapMetadata["map-name"] || "map_data") + ".json";
           const savedPath = await invokeFn('save_file_dialog', {
             defaultName: defaultName,
             content: jsonStr
           });
           if (savedPath) {
             currentMapFilePath = savedPath;
+            updateMapFileLabel();
             await invokeFn('update_db_path', { editorKey: 'MapEdit', path: savedPath });
             alert(`🎉 [맵 파일 저장 완료]\n${savedPath}`);
           }
@@ -1004,6 +1096,7 @@
     async function initMapEditor() {
       renderPalette();
       resizeMap();
+      updateMapFileLabel();
 
       const invokeFn = window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke;
       if (typeof invokeFn === 'function') {
@@ -1026,6 +1119,7 @@
             if (text) {
               loadMapJsonText(text);
               currentMapFilePath = filePath;
+              updateMapFileLabel();
               console.log('Loaded Map DB from base_config:', filePath);
             }
           }
